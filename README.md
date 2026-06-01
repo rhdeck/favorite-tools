@@ -10,6 +10,7 @@ Built and maintained at [State Change AI](https://statechange.ai), where we work
 | --- | --- |
 | [`graveyard-shift`](skills/graveyard-shift) | Work through the open issue backlog autonomously. Auto-ship the small clean fixes, prep draft PRs for review on bigger ones, and file refined proposals when design choices need user input — for unattended sessions. |
 | [`codex-pr`](skills/codex-pr) | Create a PR, review with `codex review`, fix issues in a loop until clean, then auto-merge. |
+| [`research-brief`](skills/research-brief) | Produce a research, survey, or analysis document as a skimmable markdown brief with a generated infographic prepended at the top. |
 
 ## Installing a skill
 
