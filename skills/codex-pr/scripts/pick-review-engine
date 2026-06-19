@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""Choose a code-review engine based on local Codex budget.
+
+Prints the engine name to stdout ("codex" or "agy") for scripting.
+Prints the reason to stderr so it doesn't pollute the captured value.
+
+Decision order:
+  1. REVIEW_ENGINE=codex|agy   -> forced, no questions asked.
+  2. CodexBar budget cache     -> codex if it has headroom, agy if a Codex
+                                  window is >= THRESHOLD% (default 98).
+  3. No budget data            -> default to codex (the primary), unless codex
+                                  isn't installed, in which case agy. Override
+                                  the no-data default with REVIEW_DEFAULT_ENGINE.
+
+Budget source is CodexBar's on-disk cache (macOS). Override its location with
+CODEXBAR_HISTORY if you keep it elsewhere. On machines without CodexBar the
+script still works — it just can't see live budget, so it uses the default.
+"""
+import json, os, sys, shutil
+
+THRESHOLD = float(os.environ.get("REVIEW_BUDGET_THRESHOLD", "98"))
+HIST = os.environ.get(
+    "CODEXBAR_HISTORY",
+    os.path.expanduser("~/Library/Application Support/com.steipete.codexbar/history"),
+)
+
+
+def emit(engine, reason):
+    print(engine)
+    print(reason, file=sys.stderr)
+    sys.exit(0)
+
+
+def installed(binary):
+    return shutil.which(binary) is not None
+
+
+# 1. explicit override
+forced = os.environ.get("REVIEW_ENGINE")
+if forced in ("codex", "agy"):
+    emit(forced, f"forced via REVIEW_ENGINE={forced}")
+
+# default used whenever we lack live budget data
+default = os.environ.get("REVIEW_DEFAULT_ENGINE")
+if default not in ("codex", "agy"):
+    default = "codex" if installed("codex") else "agy"
+
+
+def codex_windows():
+    p = os.path.join(HIST, "codex.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        d = json.load(open(p))
+    except Exception:
+        return None
+    accts = d.get("accounts", {})
+    if not accts:
+        return None
+    val = list(accts.values())[0]
+    res = {}
+    for w in val if isinstance(val, list) else []:
+        if isinstance(w, dict) and w.get("entries"):
+            res[w.get("name", "?")] = w["entries"][-1]
+    return res or None
+
+
+# 2. budget-aware
+wins = codex_windows()
+if not wins:
+    emit(default, f"no CodexBar budget data — defaulting to {default}")
+
+maxed = [
+    name
+    for name, e in wins.items()
+    if isinstance(e.get("usedPercent"), (int, float)) and e["usedPercent"] >= THRESHOLD
+]
+if maxed:
+    detail = ", ".join(f"{n}={wins[n]['usedPercent']}%" for n in maxed)
+    # only fall back to agy if it's actually installed; else stay on codex
+    if installed("agy"):
+        emit("agy", f"Codex tapped ({detail} ≥ {THRESHOLD:g}%) → agy")
+    emit("codex", f"Codex tapped ({detail}) but agy not installed → codex anyway")
+else:
+    detail = ", ".join(f"{n}={e.get('usedPercent')}%" for n, e in wins.items())
+    emit("codex", f"Codex has headroom ({detail}) → codex")

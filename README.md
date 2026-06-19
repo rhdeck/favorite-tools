@@ -10,7 +10,10 @@ Built and maintained at [State Change AI](https://statechange.ai), where we work
 | --- | --- |
 | [`graveyard-shift`](skills/graveyard-shift) | Work through the open issue backlog autonomously. Auto-ship the small clean fixes, prep draft PRs for review on bigger ones, and file refined proposals when design choices need user input — for unattended sessions. |
 | [`codex-pr`](skills/codex-pr) | Create a PR, review with `codex review`, fix issues in a loop until clean, then auto-merge. |
+| [`pr-package`](skills/pr-package) | Open a pull request as a decision package — summary, inline content to review, explicit "things to push back on," a checkbox test plan, and `Closes #N` — so the user reviews once with every load-bearing call surfaced. |
+| [`shape-an-epic`](skills/shape-an-epic) | Turn an underspecified "epic" issue into a concrete proposal comment — recommendation, sketch, phase plan, and trigger criteria — using a Shape Up pitch adapted for GitHub issues. |
 | [`research-brief`](skills/research-brief) | Produce a research, survey, or analysis document as a skimmable markdown brief with a generated infographic prepended at the top. |
+| [`notion-briefs`](skills/notion-briefs) | Set up (or repair) the cross-project Notion "Briefs" system in a new environment — install the publisher CLI, attach to a Notion page, and create one shared, newest-first database every project can publish briefs and shift reports to. |
 
 ## Installing a skill
 

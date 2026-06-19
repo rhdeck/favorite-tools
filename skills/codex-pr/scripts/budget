@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""Print local AI usage budget from CodexBar's on-disk cache.
+
+CodexBar (com.steipete.codexbar) polls Codex + Claude rate limits every ~5 min
+and writes them to history/*.json. This reads that cache — no network, no auth.
+Override the cache location with CODEXBAR_HISTORY. On machines without CodexBar
+there is no data to show.
+"""
+import json, os, sys, datetime
+
+HIST = os.environ.get(
+    "CODEXBAR_HISTORY",
+    os.path.expanduser("~/Library/Application Support/com.steipete.codexbar/history"),
+)
+now = datetime.datetime.now(datetime.timezone.utc)
+
+
+def parse(ts):
+    try:
+        return datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def fmt_delta(dt):
+    if not dt:
+        return "—"
+    mins = int((dt - now).total_seconds() // 60)
+    if mins < 0:
+        return "due"
+    return f"{mins // 60}h{mins % 60:02d}m"
+
+
+def latest_windows(provider):
+    p = os.path.join(HIST, f"{provider}.json")
+    if not os.path.exists(p):
+        return None
+    try:
+        d = json.load(open(p))
+    except Exception:
+        return None
+    accts = d.get("accounts", {})
+    if not accts:
+        return []
+    val = list(accts.values())[0]
+    out = []
+    for w in val if isinstance(val, list) else []:
+        if not isinstance(w, dict):
+            continue
+        name = w.get("name") or w.get("label") or "?"
+        ents = w.get("entries", [])
+        if not ents:
+            continue
+        last = ents[-1]
+        out.append((name, last.get("usedPercent"), last.get("resetsAt"), last.get("capturedAt")))
+    return out
+
+
+def main():
+    if not os.path.isdir(HIST):
+        print(f"\n  No CodexBar cache at {HIST}\n  (install/run CodexBar, or set CODEXBAR_HISTORY)\n")
+        return
+    stale_note = ""
+    for prov in ("codex", "claude"):
+        wins = latest_windows(prov)
+        print(f"\n  {prov.upper()}")
+        if not wins:
+            print("    (no data — is CodexBar running?)")
+            continue
+        for name, used, resets, captured in wins:
+            rs = parse(resets)
+            cap = parse(captured)
+            if cap and (now - cap).total_seconds() > 1800:
+                stale_note = "  ⚠ readings >30m old — open CodexBar to refresh"
+            bar = ""
+            if isinstance(used, (int, float)):
+                filled = round(used / 10)
+                bar = "█" * filled + "·" * (10 - filled)
+            flag = " 🔴" if isinstance(used, (int, float)) and used >= 98 else ""
+            print(f"    {name:<9} {str(used)+'%':>5} [{bar}]  resets {fmt_delta(rs)}{flag}")
+    if stale_note:
+        print(stale_note)
+    print()
+
+
+if __name__ == "__main__":
+    main()

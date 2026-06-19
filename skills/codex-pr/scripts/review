@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# Budget-aware code review. Picks Codex (while it has quota) or AGY (Gemini)
+# as a fallback, then runs a one-shot review of the diff against a base branch.
+# Bundled with the codex-pr skill so it travels with the skill.
+#
+# Invocation contract (codex-cli 0.133+): `codex review --base <BRANCH>` and a
+# custom [PROMPT] arg are MUTUALLY EXCLUSIVE in 0.133 (clap rejects them together),
+# so we can no longer attach our rubric to `codex review`. Both engines now get the
+# diff (git diff base...HEAD) on stdin plus the rubric prompt: codex via `codex exec
+# -s read-only` (stdin is appended as a <stdin> block), agy via `agy -p`.
+#
+# Usage:  review [base-branch]      (default base: main)
+# Env:    REVIEW_ENGINE=codex|agy   force an engine
+#         REVIEW_BUDGET_THRESHOLD=98 percent at which a Codex window is "tapped"
+#         REVIEW_DEFAULT_ENGINE     engine to use when no budget data is available
+#         CODEXBAR_HISTORY          override CodexBar cache location
+#         REVIEW_CONTEXT_FILE       path to a file with the issue body + PR
+#                                   description; fed to the engine so it can judge
+#                                   whether the change actually solves the issue
+#
+# The review evaluates three things: code correctness/security/maintainability
+# (the engine's built-in pass), ISSUE FIDELITY (does it do the job the issue
+# describes, correctly?), and DOCUMENTATION FIDELITY & DRIFT (is new code
+# documented for an AI to pick up, and did this change leave nearby docs stale?).
+#
+# The build->review->fix LOOP stays with the caller (the codex-pr skill): this
+# emits one review pass. Re-run after fixes.
+set -euo pipefail
+BASE="${1:-main}"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+ENGINE="$("$HERE/pick-review-engine")"      # stdout = engine; stderr = reason
+echo "▸ review engine: $ENGINE (base: $BASE)" >&2
+
+# ---- shared review rubric: two dimensions beyond plain code correctness ----
+# Fed to BOTH engines so the loop evaluates the same things regardless of which
+# pool ran. Findings still use the [P1]/[P2]/[P3] file:line format the caller's
+# judgment gate parses.
+# (read -d '' avoids the bash 3.2 heredoc-inside-$()  parse bug; apostrophes in the
+# body rule out a single-quoted string. `|| true` because read exits 1 at EOF.)
+IFS= read -r -d '' RUBRIC <<'RUBRIC_EOF' || true
+Beyond code correctness, security, and maintainability, ALSO evaluate these two
+dimensions and report any problems in the SAME [P1]/[P2]/[P3] file:line format:
+
+(A) ISSUE FIDELITY — does this change actually do the job it is for, correctly?
+    The issue this PR addresses (and the PR's own description) is provided below
+    when available. A PR is expected to solve the problem the issue describes —
+    and that issue may serve a broader concern. Check:
+      - Does the diff fully address the issue's stated problem / acceptance criteria?
+      - Does it solve the RIGHT problem, not an adjacent or narrower one?
+      - Does it introduce scope drift, or leave the core ask only partially done?
+    Clean code that does NOT do what the issue asks is a [P1]. Solves the issue
+    but misses a stated sub-requirement -> [P1] or [P2] by impact. If no issue
+    context is provided, say intent could not be verified -- don't assume it's fine.
+
+(B) DOCUMENTATION FIDELITY & DRIFT -- code must be documented well enough that an
+    AI agent can pick up what a function/module does WITHOUT reading the whole
+    codebase, and existing docs must not drift out of sync with this change. Check:
+      - Do new or substantially-changed functions / types / modules carry concise
+        doc comments stating purpose, contract, and non-obvious intent? (Favor
+        explaining WHY and the contract -- not line-by-line narration.)
+      - Does this change make any EXISTING nearby documentation stale -- a function
+        doc comment, a module/file header, a block comment explaining an algorithm,
+        or a referenced README/inline note that now describes behavior the diff
+        changed? Uncorrected stale docs are drift -> [P2] (or [P1] if it would
+        actively mislead a future reader).
+    Missing docs on genuinely complex NEW code -> [P2]. Trivial/self-evident code
+    needs no comment -- do not demand noise or over-documentation.
+RUBRIC_EOF
+
+# Optional issue + PR context the caller staged (gh issue view + PR body).
+CTX="${REVIEW_CONTEXT_FILE:-}"
+INSTRUCTIONS="$RUBRIC"
+if [[ -n "$CTX" && -f "$CTX" ]]; then
+  INSTRUCTIONS+=$'\n\n=== Issue & PR context (what this change is supposed to accomplish) ===\n'
+  INSTRUCTIONS+="$(cat "$CTX")"
+elif [[ -n "$CTX" ]]; then
+  echo "▸ REVIEW_CONTEXT_FILE set but not found: $CTX (reviewing without issue context)" >&2
+fi
+
+# Shared reviewer preamble: the correctness/security/maintainability ask plus the
+# [P1]/[P2]/[P3] file:line output contract the caller's judgment gate parses. The
+# RUBRIC (issue-fidelity + doc-drift) and any issue/PR context are appended below.
+read -r -d '' REVIEW_PROMPT <<PROMPT_EOF || true
+You are a senior code reviewer. Review the git diff provided on stdin (it is the
+change of the current branch against base branch "$BASE") for correctness bugs,
+security issues, and maintainability problems. List concrete findings. Tag EACH
+finding with a severity in square brackets at the start of the line — [P1]
+critical/blocks-merge, [P2] should-evaluate, [P3] nit — followed by file:line and
+a one-line fix. Use exactly that bracket format so it can be parsed.
+
+$INSTRUCTIONS
+
+If there are no substantive issues across ALL dimensions above, reply with exactly: CLEAN. Be terse.
+PROMPT_EOF
+
+# Both engines now get the SAME contract: diff on stdin + the rubric prompt.
+# (codex-cli 0.133 made `codex review --base <BRANCH>` and the [PROMPT] arg
+#  mutually exclusive — clap rejects them together — so the custom rubric could no
+#  longer ride on `codex review`. We drive `codex exec` instead, which appends
+#  piped stdin to the prompt as a <stdin> block, exactly like the AGY path.)
+DIFF="$(git diff "$BASE"...HEAD)"
+if [[ -z "$DIFF" ]]; then
+  echo "(no diff vs $BASE)" >&2
+  exit 0
+fi
+
+if [[ "$ENGINE" == "codex" ]]; then
+  if ! command -v codex >/dev/null 2>&1; then
+    echo "codex not installed; install it or set REVIEW_ENGINE=agy" >&2; exit 127
+  fi
+  # Read-only sandbox: this is a pure text review of a diff, codex needs no shell
+  # or write access. stdin (the diff) is appended to the prompt as a <stdin> block.
+  printf '%s\n' "$DIFF" | codex exec --skip-git-repo-check -s read-only "$REVIEW_PROMPT"
+  exit $?
+fi
+
+# AGY fallback: hand it the diff + the same structured review prompt.
+if ! command -v agy >/dev/null 2>&1; then
+  echo "agy not installed; install it or set REVIEW_ENGINE=codex" >&2; exit 127
+fi
+printf '%s\n' "$DIFF" | agy -p "$REVIEW_PROMPT" --print-timeout 180s

@@ -8,13 +8,48 @@ The user is away (asleep, in a meeting, on a flight) and wants you to drain the 
 
 The user reviews the queued material when they're back. The skill's job is to maximize what they wake up to — not to make every call themselves.
 
+## Scope: the whole list, until they're back
+
+**The scope of a graveyard shift is the entire open issue list — minus the `priority:someday` tier. Full stop.** Not one epic, not one theme, not "the campaign we've been discussing." A theme or epic mentioned in recent conversation is a *starting point* for sequencing — it is never a *boundary*. The only thing that narrows scope is the user explicitly naming a scope **in the graveyard directive itself** ("just do the perf issues tonight"). Absent that, every open issue gets triaged into a bucket and every actionable bucket gets executed. (A real shift failed this way: it executed one 15-item epic, declared victory after a few hours, and left 70+ open issues untouched. The user's verdict: "You had plenty of time. It's a fucking graveyard shift.")
+
+**`priority:someday` is excluded by default — even from "do it all."** The someday tier is deliberate parking: design forks the user has chosen not to engage yet (e.g. the product name #144, the stream-halt clarify architecture #261), and long-tail nice-to-haves. These are NOT in scope for a graveyard sweep — not as auto-ships, not as preps, not as proposals, not even as "while I'm here." A directive to "do everything / do it all" still excludes them; "everything" means the actionable backlog, and someday is by definition not-yet-actionable-by-choice. The user pulls someday work in **only by calling it explicitly** — by issue number, by the someday label ("drain the somedays tonight"), or by naming the specific item. Touching a `priority:someday` issue absent that is overstepping: you're un-parking something the user parked. The one exception is a *read-only* glance to confirm an in-scope issue isn't secretly blocked on a someday — that's triage, not work. (Do NOT re-file in-scope work as someday to dodge it, and do NOT promote someday work to in-scope on your own judgment — the tier boundary is the user's call, mirroring the product-name lesson: parked-vs-live is theirs to set.)
+
+**The termination condition is the backlog or the user — never the plan.** "My planned batches are done" is not done. When a wave of subagents returns, the next action is **re-triage**: go back to `gh issue list`, pick the next wave, fan out again. Loop until (a) every open issue has been auto-shipped, prepped, proposed, or explicitly skipped per the buckets below, or (b) the user is back. If you stop early, you are deciding the user's backlog doesn't deserve the hours they gave you.
+
+**Keep the fleet saturated.** Don't run one batch and wait for stragglers — when a subagent returns, spawn the next item from the queue into the freed slot (work-stealing, not batch-and-wait). A shift that finishes in 45 minutes with open issues remaining didn't finish; it under-scoped.
+
+**Caps are per-bucket, not per-shift.** The 3–5 figure below caps *draft PRs awaiting morning review* (a human-attention budget). It does NOT cap auto-ships or proposals — those are unbounded; merged PRs and shaped proposals cost the user nothing in the morning. Never let the prep cap leak into "we've done enough tonight."
+
+**Start of shift: sweep the stale-draft queue first.** Before triaging new work, inventory unmerged draft PRs and queued decisions from *prior* shifts (`gh pr list --draft` + the previous brief). Any draft that fixes a bug the user keeps hitting live goes at the TOP of the new brief ("you will keep hitting X until you review PR #N") — and if the user has since said anything that amounts to approval, land it. Fixes rotting in an unreviewed-drafts queue while the user re-experiences the bug is the single worst outcome a shift can hand back.
+
+## The orchestration model: fan out, stay lean
+
+This is the other load-bearing principle, and it is what keeps an overnight sweep affordable. A graveyard directive is an **explicit opt-in to parallel orchestration** — do NOT grind through items linearly in one ever-growing conversation.
+
+**Why this matters (the cost mechanic).** Every turn in the main thread re-bills the *entire* accumulated context as input. A long linear session therefore grows cost **super-linearly**, and a single iterative grind — build → codex-review → fix → repeat, run 13× — is catastrophic, because every later round re-reads all the earlier rounds. The expensive iteration must never accumulate in the main context. (A real shift ballooned precisely because one PR's 13-round review loop ran inline in the orchestrator thread.)
+
+**The decomposition.** Break the backlog into **isolated subagents** — one per independent item (or a single `Workflow` for the whole fan-out). Each subagent gets:
+- its **own context** (the grind happens there and is discarded when it returns),
+- its **own memory space**, and
+- its **own git worktree** (so parallel edits don't collide).
+
+Each subagent does the full loop — implement → tests/tsc clean → codex-review-until-clean → open PR — and returns **only a PR + a short report**. Independent items run **concurrently**, not sequentially: faster wall-clock *and* far cheaper.
+
+**ALWAYS delegate "loop until clean" to a subagent.** Anything that iterates — review-until-codex-clean, fix-until-tests-pass, harden-against-adversarial-cases — returns one summary, not N rounds. Running that loop in the main thread is the single biggest cost mistake.
+
+**The orchestrator (main thread) does only four things:** plan the decomposition, spawn the agents, collect the PRs + reports, and synthesize (the final serial live-verification that genuinely can't parallelize — one app window, one set of credentials — plus the end-of-shift brief). It stays flat regardless of how many review rounds each item takes.
+
+**Durable handoff is what makes this lossless.** The handoff substrate is **durable state — GitHub issues + memory files — never the chat.** Before the run ends, every item's state lives in its issue + a memory file. That is what lets the session be cleared and resumed with nothing more than "get going on #N": the context that mattered is on disk, not in a transcript. Treat the transcript as disposable; treat the issue/memory as the system of record.
+
+**Reserve the main thread for two things only:** (1) live, interactive work *with the user* (necessarily linear), and (2) serial live app/desktop driving that can't parallelize (one window; the OS targets the app by process name, so two binaries collide). Everything else belongs in an isolated agent.
+
 ## The contract: decisions, never confirmations
 
 This is the load-bearing principle. The user's morning attention is for **decisions** — judgment calls only they can make. It is NOT for confirmations — "is this fix right?", "should I merge?", "does this look ok?". Those are answerable by other AIs (codex review, type-checkers, the build) without spending the most expensive resource.
 
-**Codex IS the second opinion.** Run `codex review --base main` on every PR before merging. No findings or only nits → ship. Substantive findings → patch them, also without asking. The user does not need to re-validate work codex already validated.
+**The review loop IS the second opinion.** Run it on every PR before merging — via the **`codex-pr` skill's loop**, which owns *how* to review. Do NOT call `codex review` directly from here; that duplicates the codex-pr skill and hardcodes a single pool. The codex-pr loop is budget-aware: it routes to Codex while it has quota and falls back to AGY (`agy`, Gemini) when the Codex pool is exhausted, so a sweep never stalls on a maxed Codex limit. No findings or only nits → ship. Substantive findings → patch them, also without asking. The user does not need to re-validate work the review already validated.
 
-**Default to shipping.** If codex passes, type/cargo check passes, the diff is on-policy: merge. Do not queue "want me to merge?" Do not pre-announce intentions like "I'll patch #X then check #Y then ..." — those are confirmation-seeking dressed as status updates. Just do the work and report what landed.
+**Default to shipping.** If the review passes, type/cargo check passes, the diff is on-policy: merge. Do not queue "want me to merge?" Do not pre-announce intentions like "I'll patch #X then check #Y then ..." — those are confirmation-seeking dressed as status updates. Just do the work and report what landed.
 
 **Mechanical work is not a decision.** Both branches added a field → keep both. Single-region textual conflict where intent is obvious → resolve and continue. These are not "want me to ...?" questions.
 
@@ -50,7 +85,7 @@ For each:
 1. Spin a worktree off `origin/main` (named for the topic, see worktree rules)
 2. Implement the fix
 3. Tests + tsc clean
-4. Open PR, run codex review loop (judgment gate, stopping rules)
+4. Open PR, run the `codex-pr` review loop (budget-aware engine, judgment gate, stopping rules)
 5. Merge when clean (or stopping window hit with only manageable P2s — apply silently per skill exception and ship)
 
 ### 2. Prep — concrete code, but wants the user's eye
@@ -108,12 +143,17 @@ Skip should fit in a short list at the end of the summary. If skip is more than 
 
 ## Execution order
 
+The orchestrator plans the decomposition, then **fans the action buckets out to isolated subagents** (per "The orchestration model" above) and collects results. The passes below describe *what* each item routes to — not a serial single-thread crawl. Independent auto-ships and preps run concurrently; the orchestrator stays lean and synthesizes.
+
 Proposals are not the slow tail. They ship as eagerly as auto-ships — they're cheap (one comment per issue, no codex loop) and they compound for the user's morning review:
 
-1. Auto-ship pass: knock out each cleanly. The user wakes up to N green merges.
-2. Prep pass: 3-5 draft PRs is a productive morning of review. More than that and the user can't get through them over coffee.
+1. Auto-ship pass: **one subagent per item** (own worktree + context), each running its own implement → codex-clean → merge loop and returning a PR + one-line report. The user wakes up to N green merges; the review rounds never touched the main context.
+2. Prep pass: 3-5 draft PRs is a productive morning of review. More than that and the user can't get through them over coffee. (Also subagent-per-item.) This caps the *drafts*, not the shift — if prep slots are full, route remaining prep-shaped items to proposals and keep going.
 3. **Proposal pass: shape every epic-shaped issue you can.** Use `shape-an-epic` aggressively. Each proposal is 15–25 minutes of focused thinking; ten of them in a night is a transformed backlog. The user has a bias toward motion — 80%-good-enough proposals are the artifact that lets the next pass be a refinement, not a from-scratch.
 4. Skip pass: note in the final summary, no action.
+5. **Loop.** When a wave returns, re-run `gh issue list` and fan out the next wave into the freed slots. The passes above describe routing, not a one-shot plan — repeat until the backlog is drained or the user is back (per "Scope" above).
+
+Before declaring the shift done, confirm the **durable handoff**: every item that landed or was queued has its state on its GitHub issue + a memory file, so the session could be cleared and resumed losslessly. The brief and terminal summary (below) are the human-facing layer on top of that durable state.
 
 Proposals are LOWER overhead than auto-ships (no PR, no codex loop, no merge) and HIGHER leverage on backlog clarity. Don't sandbag this pass.
 
@@ -128,12 +168,46 @@ Proposals are LOWER overhead than auto-ships (no PR, no codex loop, no merge) an
 
 **Two artifacts, both mandatory:**
 
-### 1. A fresh dated brief
+### 1. A fresh dated Shift Report — published to **Notion**, not a local file
 
-Write `test-plans/graveyard-brief-YYYY-MM-DD.md` (or the equivalent docs path for the project) reflecting **current** state. Coming in to a brief dated yesterday that doesn't match today's repo is worse than no brief — it actively misleads.
+**Publish the shift report to the shared Notion "Briefs" database** via the project-neutral CLI, not a local markdown file. (The old `test-plans/graveyard-brief-*.md` approach scattered reports across gitignored worktrees with no shared history — don't do that anymore.) One database holds reports across **all** projects, newest-first, tagged by project; the user reviews and iterates on the published page.
 
-**Rules for the brief:**
-- One per shift, dated. Supersede or delete prior briefs in the same doc — don't accumulate stale ones.
+**Before publishing: diff against the prior Active report (the cross-brief review).** A shift report is the next entry in a *conversation*, not a standalone snapshot — its value is the relationship to the one before it. Pull the previous Active report and read it against what this shift actually did:
+
+```bash
+# find the prior Active report for this project (the one you're about to supersede)
+python3 ~/.config/ai-briefs/notion_briefs.py list --project "<Project Name>" --status Active --type "Shift Report"
+```
+
+Then reconcile, and let the new report reflect the answers:
+- **Did this shift undo anything the prior brief established?** A decision recorded as settled, a fix that landed, a direction the user approved — if tonight's work reverses or contradicts it, that's the single most important line in the new report. Call it out explicitly; don't let a silent regression hide in a fresh snapshot.
+- **What decisions has the user since made?** Forks the prior brief surfaced that have since been answered (on the issue, in a shift-change, in conversation) are *resolved* — reflect the outcome, do NOT re-surface them as open. Re-asking a settled question is the brief's worst failure.
+- **Is it consistent?** The two reports should tell one coherent story. If the prior brief said "X is blocked on Y" and Y shipped, the new one says so. Contradictions between consecutive reports mean one of them is wrong — find which.
+- **What's being pulled forward?** Carry-forward comes from two sources: open GitHub issues/draft PRs (reality), AND the prior brief's own unresolved decision section (the conversation). Both feed the new report. A reader comparing report A and report B should be able to see, line by line, what moved, what landed, and what's still waiting — that A→B legibility is the point.
+
+Procedure — write the report to a temp markdown file, confirm the project pick-list, then publish:
+```bash
+# 0. confirm the project name matches an existing pick-list option (avoid typo-dupes that split history)
+python3 ~/.config/ai-briefs/notion_briefs.py projects
+# REPORT=/tmp/shift-report.md  (write the dated report here, current-state + cross-brief reconciliation above)
+python3 ~/.config/ai-briefs/notion_briefs.py publish \
+  --project "<Project Name>" \        # match an existing option EXACTLY; a new name registers a new project
+  --date YYYY-MM-DD \
+  --title "Shift Report YYYY-MM-DD" \
+  --type "Shift Report" \
+  --status Active \
+  --file "$REPORT"                     # prints the new page URL — hand it to the user
+# supersede the prior Active report via the CLI (its unresolved items now live in the new one)
+python3 ~/.config/ai-briefs/notion_briefs.py set-status <prior-report-url> --status Superseded
+```
+The tool converts markdown → Notion blocks and returns the page URL. Setup/details live in `~/.config/ai-briefs/README.md`. If the publish fails (no DB configured, token/connection problem), surface it and fall back to a local file ONLY for that one shift, then fix the config.
+
+The report reflects **current** state. A report whose date doesn't match today's repo is worse than none — it actively misleads. You do NOT delete prior reports (the database keeps the dated history); instead the **newest report is the canonical current-state one** (Status=Active; supersede the previous), and the carry-forward rule below still governs what it must contain.
+
+**The brief is about STATE, not about the shift.** Its job is "this is what's open in front of you" — the complete current set of decisions and approvals waiting on the user — NOT a report card for tonight's work. A decision queued by a *previous* shift that the user never resolved (a draft PR awaiting review, a live test never run, a fork never answered) MUST reappear in tonight's brief, marked with its age ("draft #N, waiting since 6/10 — you will keep hitting bug X until this lands"). "It was in the last brief" is hiding the ball: superseded briefs are how pending items vanish. Build the decision section by sweeping reality, not memory: `gh pr list --draft`, open PRs authored by agents, the prior brief's decision section, and any issue marked as awaiting the user. Every item is either resolved, carried forward, or explicitly retired with a reason — never silently dropped.
+
+**Rules for the brief (now a Notion Shift Report):**
+- One report row per shift, dated (its own page in the Briefs database). Prior reports stay as dated history — do NOT delete them; mark them Status=Superseded. The newest report is the canonical current-state one (Status=Active); *unresolved items always carry forward into it* per the state rule above (so a reader never has to dig through old reports to find what's still open).
 - Open with a TL;DR of what landed and what's blocked.
 - **The decision section is the spine — but the spine is short.** Most shifts surface **0–3** genuine decisions. If your decision section has grown into a categorized list of ten-plus items ("B1 agent stuff, B2 search stuff, B3 features…"), STOP: you have collected a backlog and dressed it as decisions. Go back and resolve. A brief that hands the user a backlog has failed its core job.
 - **The two-part decision test.** A line item earns a place in the decision section ONLY if BOTH are true: (1) the answer genuinely *forks the work* — different answers send you down materially different paths; AND (2) you *cannot derive the answer yourself* from the codebase, the North Star, or "take the biggest swing." If either fails, it is not a decision — handle it per the table below.
@@ -172,6 +246,8 @@ A short message in the conversation that fits on one screen:
 ```
 
 Each draft PR's description should already carry the "Things to push back on" section so the user can walk through them with coffee without re-asking what the choices were. The terminal summary points at the brief for full context — don't repeat the brief in chat.
+
+**The brief is the agenda for the next `shift-change`.** The two skills form the primary development loop: graveyard shift (autonomous, away) produces the decision queue; shift change (live, with the user) drains it, grooms the backlog on GitHub, and cues the next graveyard shift. Write the brief so a shift-change session can open from it directly — every pending item resolvable, none requiring archaeology.
 
 ## Auto-ship vs prep — the borderline call
 
