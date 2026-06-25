@@ -87,18 +87,71 @@ def _id(s):
 
 
 # ---------- markdown -> Notion blocks ----------
+# Set per-invocation (publish/append) so bare GitHub refs (#123) auto-link to the
+# project's repo. GitHub's /issues/<n> URL redirects to /pull/<n> for PRs, so we
+# linkify issues and PRs the same way without knowing which it is.
+_GH_REPO = None
+_GH_REF = re.compile(r"(?<![\w/])#(\d{1,7})\b")
+
+
+def _detect_repo(explicit=None):
+    """owner/repo for #NNN auto-links: explicit flag, else the cwd's git remote."""
+    if explicit:
+        return explicit.strip()
+    try:
+        import subprocess
+        url = subprocess.check_output(
+            ["git", "config", "--get", "remote.origin.url"],
+            stderr=subprocess.DEVNULL).decode().strip()
+        m = re.search(r"github\.com[:/]+([^/]+/[^/]+?)(?:\.git)?/?$", url)
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+
+def _seg(content, bold=False, code=False, link=None):
+    t = {"type": "text", "text": {"content": content[:2000]}}
+    if link:
+        t["text"]["link"] = {"url": link}
+    ann = {}
+    if bold: ann["bold"] = True
+    if code: ann["code"] = True
+    if ann: t["annotations"] = ann
+    return t
+
+
+def _autolink(text, bold=False):
+    """Turn bare #NNN into GitHub issue/PR links (if the repo is known)."""
+    if not _GH_REPO or "#" not in text:
+        return [_seg(text, bold=bold)] if text else []
+    out, last = [], 0
+    for m in _GH_REF.finditer(text):
+        if m.start() > last:
+            out.append(_seg(text[last:m.start()], bold=bold))
+        n = m.group(1)
+        out.append(_seg(f"#{n}", bold=bold, link=f"https://github.com/{_GH_REPO}/issues/{n}"))
+        last = m.end()
+    if last < len(text):
+        out.append(_seg(text[last:], bold=bold))
+    return out
+
+
 def _rt(text):
     out = []
-    for part in re.split(r"(\*\*[^*]+\*\*|`[^`]+`)", text):
+    # split on explicit md links, bold, inline code; autolink bare #NNN in the rest
+    for part in re.split(r"(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|`[^`]+`)", text):
         if not part:
             continue
-        if part.startswith("**") and part.endswith("**"):
-            out.append({"type": "text", "text": {"content": part[2:-2][:2000]}, "annotations": {"bold": True}})
+        m = re.fullmatch(r"\[([^\]]+)\]\(([^)]+)\)", part)
+        if m:
+            out.append(_seg(m.group(1), link=m.group(2)))
+        elif part.startswith("**") and part.endswith("**"):
+            out.extend(_autolink(part[2:-2], bold=True))
         elif part.startswith("`") and part.endswith("`"):
-            out.append({"type": "text", "text": {"content": part[1:-1][:2000]}, "annotations": {"code": True}})
+            out.append(_seg(part[1:-1], code=True))
         else:
-            out.append({"type": "text", "text": {"content": part[:2000]}})
-    return out or [{"type": "text", "text": {"content": ""}}]
+            out.extend(_autolink(part))
+    return out or [_seg("")]
 
 
 def md_to_blocks(md):
@@ -166,6 +219,8 @@ def cmd_publish(args):
     if not db:
         sys.exit("No database configured. Run bootstrap first.")
     md = open(args.file).read() if args.file else sys.stdin.read()
+    global _GH_REPO
+    _GH_REPO = _detect_repo(getattr(args, "github_repo", None))
     blocks = md_to_blocks(md)
     page = _req("POST", "/pages", {
         "parent": {"database_id": db},
@@ -222,6 +277,8 @@ def cmd_status(args):
 def cmd_append(args):
     pid = _id(args.page)
     md = open(args.file).read() if args.file else sys.stdin.read()
+    global _GH_REPO
+    _GH_REPO = _detect_repo(getattr(args, "github_repo", None))
     blocks = md_to_blocks(md)
     if args.divider:
         blocks = [{"object": "block", "type": "divider", "divider": {}}] + blocks
@@ -238,6 +295,8 @@ def main():
     pub.add_argument("--project", required=True); pub.add_argument("--date", required=True)
     pub.add_argument("--title", required=True); pub.add_argument("--type", default="Shift Report")
     pub.add_argument("--status", default="Active"); pub.add_argument("--file")
+    pub.add_argument("--github-repo", dest="github_repo",
+                     help="owner/repo for #NNN auto-links (default: cwd's git remote)")
     pub.set_defaults(fn=cmd_publish)
     ls = sub.add_parser("list")
     ls.add_argument("--project"); ls.add_argument("--status"); ls.add_argument("--type")
@@ -246,7 +305,10 @@ def main():
     st = sub.add_parser("set-status"); st.add_argument("page"); st.add_argument("--status", required=True)
     st.set_defaults(fn=cmd_status)
     apc = sub.add_parser("append"); apc.add_argument("page"); apc.add_argument("--file")
-    apc.add_argument("--divider", action="store_true"); apc.set_defaults(fn=cmd_append)
+    apc.add_argument("--divider", action="store_true")
+    apc.add_argument("--github-repo", dest="github_repo",
+                     help="owner/repo for #NNN auto-links (default: cwd's git remote)")
+    apc.set_defaults(fn=cmd_append)
     args = ap.parse_args(); args.fn(args)
 
 

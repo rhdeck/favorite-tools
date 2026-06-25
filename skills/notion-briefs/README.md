@@ -36,9 +36,17 @@ python3 ~/.config/ai-briefs/notion_briefs.py publish \
 ```
 
 Markdown is converted to Notion blocks (headings, bullets, numbered lists,
-quotes, code fences, tables→bullets, dividers, **bold**, `code`). New Project /
-Type / Status option names auto-register, so a brand-new project just works — no
-schema edit.
+quotes, code fences, tables→bullets, dividers, **bold**, `code`, `[text](url)`
+links). New Project / Type / Status option names auto-register, so a brand-new
+project just works — no schema edit.
+
+**GitHub auto-linking.** Bare issue/PR refs like `#308` are turned into clickable
+GitHub links (click the number → straight to the issue/PR). The repo is
+auto-detected from the **cwd's git remote**, so run `publish`/`append` from inside
+the project repo; override with `--github-repo owner/repo`. GitHub's `/issues/<n>`
+URL redirects to `/pull/<n>`, so issues and PRs both resolve without
+distinguishing them. Refs inside `` `backticks` `` are left as-is. Just write
+`#NNN` in the report — no manual linking.
 
 **Check the project pick-list before publishing.** Run `projects` and match the
 existing option name exactly — `publish` auto-registers whatever string you pass,

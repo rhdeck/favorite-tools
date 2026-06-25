@@ -10,7 +10,11 @@
 # -s read-only` (stdin is appended as a <stdin> block), agy via `agy -p`.
 #
 # Usage:  review [base-branch]      (default base: main)
-# Env:    REVIEW_ENGINE=codex|agy   force an engine
+# Env:    REVIEW_SYNTHESIS=1        run BOTH Codex+AGY and synthesize their findings
+#                                   into an agree/diverge/transcendent-read section
+#                                   (#150 D4). Opt-in; spends both pools. Falls back
+#                                   to single-engine if both engines aren't present.
+#         REVIEW_ENGINE=codex|agy   force an engine
 #         REVIEW_BUDGET_THRESHOLD=98 percent at which a Codex window is "tapped"
 #         REVIEW_DEFAULT_ENGINE     engine to use when no budget data is available
 #         CODEXBAR_HISTORY          override CodexBar cache location
@@ -28,6 +32,50 @@
 set -euo pipefail
 BASE="${1:-main}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ---- cross-family synthesis panel (#150 D4) ----
+# Opt-in via REVIEW_SYNTHESIS=1. Instead of one engine's vote, run BOTH Codex (GPT)
+# and AGY (Gemini) on the same diff and synthesize their findings into an
+# agree / diverge / transcendent-read section — so a multi-advisor review reports
+# one reconciled view (the #150 DoD: any multi-advisor loop runs synthesis before
+# reporting to humans). ADDITIVE: with REVIEW_SYNTHESIS unset the script behaves
+# exactly as before. Degrades to a normal single-engine review if both engines
+# aren't installed. The two per-engine passes reuse this same script via a guarded
+# recursive self-call (_REVIEW_PANEL_CHILD), so the rubric/contract stay identical.
+# NOTE: this spends BOTH pools (Codex + AGY) per round — heavier than single-engine;
+# use it where a reconciled second opinion is worth it, mind credit-pacing.
+if [[ "${REVIEW_SYNTHESIS:-}" == "1" && -z "${_REVIEW_PANEL_CHILD:-}" ]]; then
+  if command -v codex >/dev/null 2>&1 && command -v agy >/dev/null 2>&1; then
+    echo "▸ synthesis panel: Codex (GPT) + AGY (Gemini) (base: $BASE)" >&2
+    CX_OUT="$(_REVIEW_PANEL_CHILD=1 REVIEW_ENGINE=codex "${BASH_SOURCE[0]}" "$BASE" 2>/dev/null || true)"
+    AG_OUT="$(_REVIEW_PANEL_CHILD=1 REVIEW_ENGINE=agy   "${BASH_SOURCE[0]}" "$BASE" 2>/dev/null || true)"
+    if [[ -z "${CX_OUT}${AG_OUT}" ]]; then echo "(no diff vs $BASE)" >&2; exit 0; fi
+    # Static synthesis instructions in a QUOTED heredoc; the two review bodies are
+    # appended by plain string concat (NOT heredoc expansion) so any $(...)/backticks
+    # in review text can never be command-substituted.
+    IFS= read -r -d '' SYNTH_HEAD <<'SYNTH_EOF' || true
+You are reconciling TWO independent senior code reviews of the SAME diff: one from
+Codex (GPT family), one from AGY (Gemini family). Do NOT re-review the code yourself.
+Output a SHORT synthesis (<=170 words) as exactly these three labeled parts:
+
+AGREE — concrete findings BOTH reviews raised (highest confidence; fix these first).
+DIVERGE — findings only ONE raised, or where the two disagree (judgment needed; name which engine).
+TRANSCENDENT READ — the single deeper issue/theme neither stated outright but both gesture toward; if there is none, say "none".
+
+Preserve [P1]/[P2]/[P3] tags when you cite a finding. If BOTH reviews were exactly
+CLEAN, output: CLEAN (both engines). Be terse.
+SYNTH_EOF
+    SYNTH_INPUT="${SYNTH_HEAD}"$'\n\n=== Codex (GPT) review ===\n'"${CX_OUT}"$'\n\n=== AGY (Gemini) review ===\n'"${AG_OUT}"
+    # Synthesize via AGY/Gemini: a different family than the GPT judge, and not the
+    # Claude that typically wrote the code (the recursive-pull case #150 guards).
+    SYNTH="$(printf '%s' "$SYNTH_INPUT" | agy -p "Reconcile the two code reviews on stdin per their instructions." --print-timeout 180s 2>/dev/null || true)"
+    printf '===== Codex (GPT) review =====\n%s\n\n===== AGY (Gemini) review =====\n%s\n\n===== Cross-judge synthesis =====\n%s\n' \
+      "${CX_OUT:-(no output)}" "${AG_OUT:-(no output)}" "${SYNTH:-(synthesis step unavailable — use the two raw reviews above)}"
+    exit 0
+  else
+    echo "▸ REVIEW_SYNTHESIS=1 but Codex+AGY not both available; falling back to single-engine review" >&2
+  fi
+fi
 
 ENGINE="$("$HERE/pick-review-engine")"      # stdout = engine; stderr = reason
 echo "▸ review engine: $ENGINE (base: $BASE)" >&2

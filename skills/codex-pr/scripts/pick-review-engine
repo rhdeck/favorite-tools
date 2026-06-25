@@ -16,9 +16,13 @@ Budget source is CodexBar's on-disk cache (macOS). Override its location with
 CODEXBAR_HISTORY if you keep it elsewhere. On machines without CodexBar the
 script still works — it just can't see live budget, so it uses the default.
 """
-import json, os, sys, shutil
+import json, os, sys, shutil, datetime
 
 THRESHOLD = float(os.environ.get("REVIEW_BUDGET_THRESHOLD", "98"))
+STALE_MIN = float(os.environ.get("BUDGET_STALE_MIN", "30"))
+# Unattended/graveyard runs must FAIL CLOSED: when budget is unknown/stale we
+# refuse to spend Codex blind. Default off so interactive use is unchanged.
+FAIL_CLOSED = os.environ.get("BUDGET_FAIL_CLOSED", "") not in ("", "0", "false")
 HIST = os.environ.get(
     "CODEXBAR_HISTORY",
     os.path.expanduser("~/Library/Application Support/com.steipete.codexbar/history"),
@@ -65,10 +69,43 @@ def codex_windows():
     return res or None
 
 
+def newest_capture(wins):
+    """Most recent capturedAt across windows, or None if unparseable."""
+    newest = None
+    for e in wins.values():
+        ts = e.get("capturedAt")
+        if not ts:
+            continue
+        try:
+            dt = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        except Exception:
+            continue
+        if newest is None or dt > newest:
+            newest = dt
+    return newest
+
+
+def no_data(reason):
+    """Resolve the no-/stale-data case. Fail CLOSED when asked: don't spend
+    Codex blind — prefer agy if available; only then fall back to the default."""
+    if FAIL_CLOSED:
+        if installed("agy"):
+            emit("agy", f"{reason}; FAIL_CLOSED → agy (refusing to spend Codex blind)")
+        emit(default, f"{reason}; FAIL_CLOSED but agy missing → {default}")
+    emit(default, f"{reason} — defaulting to {default}")
+
+
 # 2. budget-aware
 wins = codex_windows()
 if not wins:
-    emit(default, f"no CodexBar budget data — defaulting to {default}")
+    no_data("no CodexBar budget data")
+
+# stale readings are NOT headroom — treat as no-data
+cap = newest_capture(wins)
+if cap is not None:
+    age_min = (datetime.datetime.now(datetime.timezone.utc) - cap).total_seconds() / 60
+    if age_min > STALE_MIN:
+        no_data(f"CodexBar reading {int(age_min)}m old (> {STALE_MIN:g}m stale)")
 
 maxed = [
     name

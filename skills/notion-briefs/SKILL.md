@@ -141,6 +141,10 @@ python3 ~/.config/ai-briefs/notion_briefs.py set-status <url> --status Collected
 
 The brief is a living lifecycle object (**Active → Superseded | Collected**). Mark the prior report **Superseded** when a newer one rolls its open items forward; mark a fully-worked brief **Collected** after appending its closeout footer. The graveyard-shift skill publishes + supersedes; the shift-change skill closes out (Collected). Full lifecycle in `README.md`.
 
+### GitHub auto-linking (publish + append)
+
+Bare issue/PR refs like `#308` in the markdown are **auto-linked to GitHub** so the user can click the number straight into the issue/PR — no manual linking needed. The repo is auto-detected from the **cwd's git remote** (so just run the publish from inside the project repo); override with `--github-repo owner/repo` if publishing from elsewhere. GitHub's `/issues/<n>` URL redirects to `/pull/<n>` for PRs, so issues and PRs both link correctly without distinguishing them. Refs inside `` `backticks` `` are left alone, and explicit `[text](url)` markdown links render as clickable links too. Write reports with plain `#NNN` — the tooling handles the linking.
+
 ## Notes / gotchas
 
 - **Internal integrations cannot create workspace-level/root pages** — the database must nest under an existing page the user shared with the integration (Step 3). That's why we solicit a page URL instead of making one.

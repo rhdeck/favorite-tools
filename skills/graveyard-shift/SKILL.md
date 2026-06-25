@@ -1,4 +1,5 @@
 ---
+name: graveyard-shift
 description: Work through the open issue backlog autonomously. Auto-ship the small clean fixes, prep draft PRs for review on bigger ones, file refined proposals when design choices need user input. For unattended sessions where the user is sleeping / away and wants to wake up to a productive set of changes.
 ---
 
@@ -27,6 +28,8 @@ The user reviews the queued material when they're back. The skill's job is to ma
 This is the other load-bearing principle, and it is what keeps an overnight sweep affordable. A graveyard directive is an **explicit opt-in to parallel orchestration** — do NOT grind through items linearly in one ever-growing conversation.
 
 **Why this matters (the cost mechanic).** Every turn in the main thread re-bills the *entire* accumulated context as input. A long linear session therefore grows cost **super-linearly**, and a single iterative grind — build → codex-review → fix → repeat, run 13× — is catastrophic, because every later round re-reads all the earlier rounds. The expensive iteration must never accumulate in the main context. (A real shift ballooned precisely because one PR's 13-round review loop ran inline in the orchestrator thread.)
+
+**Pace against the budget — see the `credit-pacing` skill.** A graveyard run is exactly where overage happens: nobody's watching the credit meter. At start of shift and before each new fan-out wave, run the budget check. Pace against *both* pools — the **Claude** window (the orchestrator's own loop cost) and the **Codex** window (review cost). When a pool is tapped, **schedule the gated work for that window's reset and keep working everything else**; never grind another round into overage. Run any review loop with `BUDGET_FAIL_CLOSED=1` so a stale/missing reading defers to AGY instead of spending blind.
 
 **The decomposition.** Break the backlog into **isolated subagents** — one per independent item (or a single `Workflow` for the whole fan-out). Each subagent gets:
 - its **own context** (the grind happens there and is discarded when it returns),
@@ -221,9 +224,15 @@ The report reflects **current** state. A report whose date doesn't match today's
 | A cluster of related issues sharing a root cause | Propose ONE campaign with a recommended sequence and *just start it* — don't enumerate the children as separate decisions. |
 
 - **A real decision reads as a fork, not a menu.** Good: "PR #A refactored what #B extended — B's registry can live on A's new class (cleaner, +2hr) or stay on the old shape (faster, leaves debt). I recommend the former. Confirm?" Bad: "Here are 12 open features grouped by theme, which do you want?"
+- **Every queued draft PR carries its own What / Why / Decision IN THE BRIEF — not just a link.** A PR row that says only "PR #27 — de-binarized scoring — confirm the metrics" forces the user to open the PR and the issue to reconstruct what they're deciding. That's the failure mode: the brief should let the user 80/20 the call *from the brief itself*, diving into the PR only when they want the deep version. So give each queued PR three tight beats:
+  - **What it is** — one or two sentences describing the change concretely (what the diff does, what now exists that didn't).
+  - **Why it exists** — the problem it answers and the evidence that prompted it (the issue, the measured finding, the bug the user kept hitting). Make the motivation legible without the issue open.
+  - **The decision** — the specific fork being handed back, stated as a fork with a recommendation ("I pinned X; the alternative is Y; I recommend X because Z — your call is just confirm-or-flip"). If there's genuinely nothing to decide, it's not a queued-decision PR — it's an auto-ship; merge it.
+  The PR's own "Things to push back on" section is the deep-dive; the brief's What/Why/Decision is the executive layer that stands alone. A reader who only reads the brief should be able to approve or redirect every PR without clicking through. (This came directly from the user: "I'm looking at these and not quite tracking it… I have to dive deep into the PR or the issue to learn more. Put more into the brief so I can 80/20 it.")
 - Status of completed work is a one-liner table at most. The user doesn't need a play-by-play.
 - "What I'm doing without you" is a first-class section, not an afterthought. List the calls you took back (sequencing, shaping, clean merges) so the user sees you're *running*, not stalled. The brief's two jobs are: **(1) catch the user up, (2) extract the few genuine forks.** Everything between those two is work you should already be doing.
 - "Items NOT requiring a decision" / cleanup (locked worktrees, stale files) goes at the bottom and stays small. If it's truly trivial, just do it instead of mentioning.
+- **If the project accumulates large *reclaimable* artifacts (model weights, datasets, build/output caches, worktrees), surface a storage line AND ask the dormancy question.** Disk is the resource analogue of credits — an unattended run is exactly where it silently fills. Two parts: (1) state current free space + the biggest reclaimable rocks; (2) ask **"are we putting this down for a while?"** — because the right aggressiveness is dormancy-dependent. *Staying active* → keep the working set warm (champions/current-round artifacts resident) so iteration stays fast; evict only redundant/also-ran/duplicate artifacts. *Going dormant* → prune hard toward near-zero and re-fetch on resume. The durability contract is provenance (a manifest of how to recreate each artifact), not the bytes — so eviction is reversible and costs only re-fetch *time*, never the asset. Never auto-delete artifacts the project didn't create (a user's unrelated models/data on the same machine) — flag those, don't evict them.
 
 ### 2. The terminal summary
 
