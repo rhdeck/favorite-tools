@@ -33,6 +33,34 @@ This is the other load-bearing principle, and it is what keeps an overnight swee
 
 For review loops, also check the review engine's pool because `codex-pr` may spend Codex or fall back to AGY. Run any review loop with `BUDGET_FAIL_CLOSED=1` so a stale/missing Codex reading defers to AGY instead of spending blind. When the active harness or review engine is tapped, **schedule the gated work for that window's reset and keep working everything else**; never grind another round into overage. If the user corrects the budget reading or says the current data is stale, re-run the check and report the active-harness numbers explicitly before using budget as a constraint.
 
+## Mode boundary: live brain vs. graveyard fleet
+
+When the user is actively talking with you, the main thread is the high-context thinking surface. Use it for judgment, synthesis, architecture choices, live debugging with the user, and deciding what the next autonomous wave should be. Do not burn that shared context on repetitive implementation loops.
+
+When the user says **graveyard shift**, the main thread changes jobs. It becomes the orchestrator, not the worker. If no worker agents have been spawned, a graveyard shift has not started; at most, you have done triage.
+
+At the start of every graveyard shift, write down the concurrency plan before touching issue code:
+
+- active harness and budget reading, plus the review engine budget if review loops will run
+- repo, base branch, and any dirty-worktree constraints
+- backlog source command and excluded labels/scopes
+- worker slots available now
+- first wave: issue number, bucket, expected output, and worktree/branch name per worker
+- what remains intentionally in the main thread because it is serial or user-facing
+
+Then fan out the first wave. The first wave should contain real worker agents for auto-ship, prep, or proposal work whenever such items exist. Explorer-only triage is not enough unless the backlog itself is still unknown.
+
+Worker prompts should be small and disposable. Give each worker only the repo, issue URL/number, bucket, acceptance criteria, branch/worktree instructions, required tests, review-loop expectations, and final report format. Do **not** paste the accumulated live conversation into workers unless one sentence from it is actually acceptance criteria. The goal is for each worker to spend against the issue and repository state, not against the main chat transcript.
+
+The main thread may do only these serial tasks during the shift:
+
+- choose the next wave and keep worker slots full
+- resolve true judgment forks that workers surface
+- perform live browser/app/desktop checks that cannot safely parallelize
+- publish the shift report and terminal summary
+
+If you catch yourself implementing an issue, fixing tests repeatedly, or running a review-until-clean loop in the main thread, stop and move that work into a worker. Inline work is allowed only for tiny orchestrator maintenance that unblocks the fleet itself, such as fixing a broken script used to launch workers.
+
 **The decomposition.** Break the backlog into **isolated subagents** — one per independent item (or a single `Workflow` for the whole fan-out). Each subagent gets:
 - its **own context** (the grind happens there and is discarded when it returns),
 - its **own memory space**, and
