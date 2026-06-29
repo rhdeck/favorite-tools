@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiered Multi-Agent Graveyard Shift (TAGS) Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --surface: #141b2d;
+      --surface-card: #1f2a44;
+      --surface-accent: #2e3e60;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --primary: #38bdf8;
+      --primary-dim: rgba(56, 189, 248, 0.1);
+      --success: #34d399;
+      --success-dim: rgba(52, 211, 153, 0.1);
+      --warning: #fbbf24;
+      --warning-dim: rgba(251, 191, 36, 0.1);
+      --danger: #f87171;
+      --danger-dim: rgba(248, 113, 113, 0.1);
+      --accent: #a78bfa;
+      --accent-dim: rgba(167, 139, 250, 0.1);
+      --font-sans: 'Outfit', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --surface-card: #f1f5f9;
+        --surface-accent: #e2e8f0;
+        --border: rgba(0, 0, 0, 0.06);
+        --text: #0f172a;
+        --text-dim: #64748b;
+        --primary: #0284c7;
+        --primary-dim: rgba(2, 132, 199, 0.08);
+        --success: #059669;
+        --success-dim: rgba(5, 150, 105, 0.08);
+        --warning: #d97706;
+        --warning-dim: rgba(217, 119, 6, 0.08);
+        --danger: #dc2626;
+        --danger-dim: rgba(220, 38, 38, 0.08);
+        --accent: #7c3aed;
+        --accent-dim: rgba(124, 58, 237, 0.08);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      padding: 2rem;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 2rem;
+      position: relative;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+
+    .badge-primary {
+      background-color: var(--primary-dim);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--text) 30%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: var(--text-dim);
+      font-weight: 300;
+      max-width: 800px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      border-color: rgba(56, 189, 248, 0.2);
+    }
+
+    .card-accent-blue::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: var(--primary);
+    }
+
+    .card-accent-purple::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: var(--accent);
+    }
+
+    .card-accent-green::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: var(--success);
+    }
+
+    .card-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-desc {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .model-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .model-pill {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      padding: 0.2rem 0.5rem;
+      background-color: var(--surface-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+    }
+
+    .model-pill-highlight {
+      background-color: var(--primary-dim);
+      border-color: rgba(56, 189, 248, 0.3);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .section-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-top: 3rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    /* Diagram Wrap & Pan Zoom */
+    .diagram-wrap {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 3rem;
+      position: relative;
+      overflow: hidden;
+      min-height: 550px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .diagram-controls {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      z-index: 10;
+    }
+
+    .btn {
+      background-color: var(--surface-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .btn:hover {
+      background-color: var(--surface-accent);
+      border-color: var(--primary);
+    }
+
+    .mermaid-viewport {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      overflow: auto;
+      transform-origin: 50% 50%;
+      user-select: none;
+    }
+
+    .mermaid-viewport:active {
+      cursor: grabbing;
+    }
+
+    .mermaid-container {
+      transform-origin: 0 0;
+      transition: transform 0.1s ease-out;
+    }
+
+    /* Tabular display for Budgets */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 3rem;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    th, td {
+      padding: 1rem 1.25rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background-color: var(--surface-card);
+      font-weight: 600;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background-color: var(--surface-card);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .status-active {
+      background-color: var(--success-dim);
+      color: var(--success);
+      border: 1px solid rgba(52, 211, 153, 0.2);
+    }
+
+    .status-standby {
+      background-color: var(--warning-dim);
+      color: var(--warning);
+      border: 1px solid rgba(251, 191, 36, 0.2);
+    }
+
+    .status-restricted {
+      background-color: var(--danger-dim);
+      color: var(--danger);
+      border: 1px solid rgba(248, 113, 113, 0.2);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: currentColor;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--surface-accent);
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      color: var(--primary);
+    }
+
+    /* Responsive details block */
+    details {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      padding: 1rem;
+    }
+
+    summary {
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    summary::after {
+      content: '→';
+      transition: transform 0.2s;
+    }
+
+    details[open] summary::after {
+      transform: rotate(90deg);
+    }
+
+    .details-content {
+      margin-top: 1rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+      color: var(--text-dim);
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge badge-primary">Proposed Architecture</div>
+      <h1>Tiered Multi-Agent Graveyard Shift (TAGS)</h1>
+      <div class="subtitle">A multi-vendor orchestration model splitting high-context reasoning planners from low-cost concurrent execution workers, bound by credit pacing and quality feedback loops.</div>
+    </header>
+
+    <div class="grid-3">
+      <!-- Tier 1 -->
+      <div class="card card-accent-blue">
+        <div class="card-title">
+          <span>🧠</span> Tier 1: The Planners / Orchestrators
+        </div>
+        <div class="card-desc">
+          Owns the backlog triage, strategic sequencing, epic decomposition, and detailed worker speccing. Runs in a high-reasoning context.
+        </div>
+        <div class="model-list">
+          <span class="model-pill model-pill-highlight">Codex (Extra High Thinking)</span>
+          <span class="model-pill">Gemini Pro</span>
+          <span class="model-pill">Claude Opus (High)</span>
+        </div>
+      </div>
+
+      <!-- Tier 2 -->
+      <div class="card card-accent-purple">
+        <div class="card-title">
+          <span>⚙️</span> Tier 2: The Workers (Execution)
+        </div>
+        <div class="card-desc">
+          Executes targeted tasks concurrently using isolated git worktrees. Runs coding iteration, test diagnostics, and build updates.
+        </div>
+        <div class="model-list">
+          <span class="model-pill model-pill-highlight">Claude Sonnet / Opus (Medium)</span>
+          <span class="model-pill">Codex (Medium)</span>
+          <span class="model-pill">Gemini Pro (Equivalent to Sonnet)</span>
+        </div>
+      </div>
+
+      <!-- Tier 3 -->
+      <div class="card card-accent-green">
+        <div class="card-title">
+          <span>⚖️</span> Tier 3: Quality Gates & Utilities
+        </div>
+        <div class="card-desc">
+          Runs automated test loops (tsc, cargo check, review loops) and uses lightweight utility parsing. Gemini Flash is relegated strictly to text parsing.
+        </div>
+        <div class="model-list">
+          <span class="model-pill">Static Verification Checks</span>
+          <span class="model-pill model-pill-highlight">Codex PR Skill</span>
+          <span class="model-pill">Gemini Flash (Parsing/Utility Only)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <span>🔄</span> Orchestration Flow & Feedback Loop
+    </div>
+
+    <div class="diagram-wrap">
+      <div class="diagram-controls">
+        <button class="btn" onclick="zoom(1.15)">＋ Zoom In</button>
+        <button class="btn" onclick="zoom(0.85)">－ Zoom Out</button>
+        <button class="btn" onclick="resetZoom()">↺ Reset</button>
+      </div>
+      <div class="mermaid-viewport" id="viewport">
+        <div class="mermaid-container" id="container">
+          <pre class="mermaid">
+graph TD
+    classDef orchestrator fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#e2e8f0;
+    classDef worker fill:#2e1f4d,stroke:#a78bfa,stroke-width:2px,color:#e2e8f0;
+    classDef gate fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#e2e8f0;
+    classDef danger fill:#7f1d1d,stroke:#f87171,stroke-width:2px,color:#e2e8f0;
+
+    %% Flow Steps
+    A["Start Graveyard Shift"] --> B["Triage Open Issues"]
+    B --> C{"Decompose & Sequence"}
+    
+    C -- "Big / Architectural" --> D["Planner shapes Design/Epic"]:::orchestrator
+    C -- "Decomposed / Less Big Bounded tasks" --> E["Orchestrator generates Targeted Worker Specs"]:::orchestrator
+    
+    E --> F["Spawn Concurrent Workers in Worktrees"]:::worker
+    
+    F --> G1["Worker 1: Claude Sonnet / Opus (Medium)"]:::worker
+    F --> G2["Worker 2: Codex (Medium Thinking)"]:::worker
+    F --> G3["Worker 3: Gemini Pro"]:::worker
+    
+    G1 --> H["Run Tests & TSC"]:::gate
+    G2 --> H
+    G3 --> H
+    
+    H -- "Pass" --> I["Run Codex-PR Review Loop"]:::gate
+    H -- "Fail (Iterate Limit Reached)" --> J["Escalate: Return Error Logs"]:::danger
+    
+    I -- "Clean / Minor Nits" --> K["Auto-Ship: Merge to Main"]:::gate
+    I -- "Failed Review" --> J
+    
+    J --> L{"Triage Failure Root Cause"}:::orchestrator
+    L -- "Fixable by High-Tier" --> M["Re-Route to High-Reasoning Worker (Opus/Codex Extra High)"]:::orchestrator
+    L -- "Design Blocked" --> N["Generate Proposal / Flag User"]:::orchestrator
+    
+    M --> H
+          </pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <span>📊</span> Multi-Vendor Credit Allocation & Routing Matrix
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Vendor</th>
+          <th>Quota & Subscription Verification</th>
+          <th>Typical Role</th>
+          <th>Failover Policy</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Gemini (Google)</strong></td>
+          <td>Dynamically query Google Workspace/AI Studio API key tier rate-limits and token/request quota constraints.</td>
+          <td>Gemini Pro for coding & planning (Flash relegated to text utility parsing/log auditing, not trusted for code generation)</td>
+          <td>Fallback to Claude Sonnet or Codex (Medium)</td>
+          <td><span class="status-badge status-active"><span class="dot"></span>Active</span></td>
+        </tr>
+        <tr>
+          <td><strong>Claude (Anthropic)</strong></td>
+          <td>Query Anthropic subscription usage, active workspace tiers, and remaining rate limit tokens.</td>
+          <td>Claude Sonnet / Opus (Medium) for coding, Opus (High) for strategic planning</td>
+          <td>Fallback to Gemini Pro</td>
+          <td><span class="status-badge status-active"><span class="dot"></span>Active</span></td>
+        </tr>
+        <tr>
+          <td><strong>OpenAI / Codex</strong></td>
+          <td>Query OpenAI organization monthly usage thresholds and key token window limits.</td>
+          <td>Codex (Extra High Thinking) for planning & PR reviews, Codex (Medium) for coding</td>
+          <td>Fallback to Gemini Pro / Claude Sonnet</td>
+          <td><span class="status-badge status-standby"><span class="dot"></span>Low Quota</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="section-title">
+      <span>🛠️</span> Implementation Details
+    </div>
+
+    <details>
+      <summary>How to split the Orchestrator from the Worker pools</summary>
+      <div class="details-content">
+        We can modify the <code>graveyard-shift</code> orchestrator code (running in the top-level model context) to dynamically spawn subagents using different models. 
+        When invoking <code>invoke_subagent</code>, the orchestrator specifies the targeted model inside the prompt or configurations:
+        <br><br>
+        <code>"TypeName": "self"</code> is used, but we parameterize the subagent's execution environment. For instance, the prompt given to the subagent instructs it to configure the runner to use the Flash model, while reserving the Pro model for planning.
+      </div>
+    </details>
+
+    <details>
+      <summary>Enforcing Concurrency & Worktree Safety</summary>
+      <div class="details-content">
+        To prevent parallel workers from clashing on modifications, the orchestrator allocates a unique git worktree per issue. 
+        Each subagent executes within its own directory space (e.g., <code>/Users/ray/Documents/skills-manager/.worktrees/issue-123</code>). 
+        Once the worker completes, the worktree is automatically cleaned up or unlinked after the PR is successfully opened.
+      </div>
+    </details>
+
+    <details>
+      <summary>Escalation & Feedback Loops</summary>
+      <div class="details-content">
+        If a worker model fails to compile or resolve tests within 3 iterations, it halts and reports its modifications and build logs back to the orchestrator.
+        The orchestrator (running the high-reasoning model) analyzes the diff, determines if the error is architectural, and either:
+        <ol>
+          <li>Corrects the spec and restarts the worker.</li>
+          <li>Upgrades the task to a high-reasoning worker (e.g. Gemini Pro).</li>
+          <li>Converts the task to a **Proposal** (drafting a 4-bullet comment or an epic design).</li>
+        </ol>
+      </div>
+    </details>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({ 
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        primaryColor: '#1f2a44',
+        primaryTextColor: '#e2e8f0',
+        primaryBorderColor: 'rgba(56, 189, 248, 0.3)',
+        lineColor: '#94a3b8',
+        secondaryColor: '#141b2d',
+        tertiaryColor: '#0b0f19'
+      }
+    });
+
+    let currentScale = 1;
+    let translateX = 0;
+    let translateY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    const viewport = document.getElementById('viewport');
+    const container = document.getElementById('container');
+
+    // Zoom Function
+    function zoom(factor) {
+      currentScale *= factor;
+      // Constraint scale
+      currentScale = Math.min(Math.max(currentScale, 0.4), 3);
+      updateTransform();
+    }
+
+    function resetZoom() {
+      currentScale = 1;
+      translateX = 0;
+      translateY = 0;
+      updateTransform();
+    }
+
+    function updateTransform() {
+      container.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+    }
+
+    // Panning Listeners
+    viewport.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX - translateX;
+      startY = e.clientY - translateY;
+      viewport.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+      viewport.style.cursor = 'grab';
+    });
+
+    viewport.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      translateX = e.clientX - startX;
+      translateY = e.clientY - startY;
+      updateTransform();
+    });
+
+    // Mouse wheel zoom support
+    viewport.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
+      zoom(zoomFactor);
+    });
+  </script>
+</body>
+</html>
