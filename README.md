@@ -1,8 +1,16 @@
-# favorite-tools
+# operating-model
 
-A collection of redistributable [Claude Code](https://claude.com/claude-code) skills.
+The operating system for the graveyard way of working. (This repo was renamed from `favorite-tools`.)
 
 Built and maintained at [State Change AI](https://statechange.ai), where we work on this kind of thing.
+
+## Operating model
+
+This is not a tool bag — it is the operating model for building big things with autonomous graveyard shifts. The thesis: work compounds only when knowledge is externalized into substrates that are **versioned, visible, and cold-resumable** (git and Notion), never trapped in a chat transcript or a local memory file. Every fact has exactly one home, sorted by scope (this project vs. how-we-operate) and kind (transient work vs. durable knowledge); a project earns its way from live-in-chat inception to a self-describing, externally-driven graveyard phase through a deliberate externalization event. The human-readable constitution lives in `docs/`; the skills below are the executable canon that runs it.
+
+- [`docs/operating-model.md`](docs/operating-model.md) — the constitution: thesis, the two-axis/four-homes grid, and the versioned-visible-cold-resumable rule.
+- [`docs/lifecycle.md`](docs/lifecycle.md) — the three-phase lifecycle and why the externalization event is the whole game.
+- [`docs/knowledge-homes.md`](docs/knowledge-homes.md) — the four homes in depth, the repo contract, and the local-memory anti-pattern.
 
 ## Skills
 
