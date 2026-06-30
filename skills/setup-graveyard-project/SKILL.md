@@ -72,6 +72,8 @@ This is the entry point a cold agent reads first. It is the technical-canon inde
 - Project-specific operating rules: how to build/test/run, conventions, guardrails, anything an agent must know before touching code.
 - Keep it an *index and a ruleset*, not a duplicate of the canon — it points to DECISIONS/ARCHITECTURE, it doesn't restate them.
 
+> **The Notion URL lives in exactly one place: `docs/OVERVIEW.md`.** CLAUDE.md and everything else reference *that file* for strategic state, never the raw Notion URL. This is what lets you write CLAUDE.md here (step 3) before the Notion page exists (step 4) — there's no forward dependency on the URL.
+
 ### 4. Create the Notion Project Overview (strategic state)
 
 Create the project's page in the Notion Project Overviews database via the briefs publisher CLI at `~/.config/ai-briefs/notion_briefs.py`. (If the briefs system isn't configured in this environment — no `~/.config/ai-briefs/token` — run the `notion-briefs` setup skill first.)
@@ -82,7 +84,15 @@ The Overview page holds: **Name · Status · Repo (URL) · One-line purpose · L
 - Stamp **Last externalized** with today's date.
 - Confirm the **Repo URL** and **one-line purpose** are present.
 
-Check the publisher's `README.md` in `~/.config/ai-briefs/` for the exact command/flags, since the Overviews database and its schema are managed there. If a Project Overview page already exists for this repo, **update it** (status, last-externalized, body) rather than creating a duplicate.
+The command is **`overview upsert`** (idempotent — creates the page, or updates it if one with that `--name` already exists):
+
+```bash
+python3 ~/.config/ai-briefs/notion_briefs.py overview upsert \
+  --name "<Project>" --status Graveyard --repo <url> \
+  --purpose "<one line>" --last-externalized <YYYY-MM-DD> --file <body.md>
+```
+
+⚠️ **`--name` must EXACTLY match the project's existing Briefs `--project` tag.** A mismatch forks the project into two surfaces (the exact `Local AI Comparison` / `local-ai-comparison` drift the Project Overviews DB exists to kill). Check the current tag with `notion_briefs.py projects` before you run this. See the publisher's `README.md` for the full flag set.
 
 ### 5. Drop the `docs/OVERVIEW.md` stub
 
