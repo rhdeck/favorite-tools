@@ -11,16 +11,33 @@ way it is*.
 
 ## 2026-06-30
 
-### Project Overviews DB + dual-write migration (#5, #16)
+### operating-model is the model; skills-manager is the interface
+**Decision:** Keep two repos with distinct jobs and never conflate them.
+`operating-model` is *what the model is* — the canon/principles, where decisions
+about how graveyard-shift work works get made. `skills-manager` is *the
+interface / supporting software* through which we discover, review, modify, and
+(most importantly) **reference** that model from real projects — beyond the
+Ray↔Claude chats. skills-manager is a lens + workflow over the git canon, never
+a divergent copy. Tracked in skills-manager #101 (epic) + #102–105.
+**Why:** the model is proving out across 10 projects; it can't keep evolving
+only in chat transcripts. The interface scales discovery/review/decision and
+turns the principles into infrastructure projects cite — but only if the
+"what it is" stays the single source of truth and the "how we work it" lives
+separately, so the two don't drift into competing canons.
+
+### Project Overviews DB — relation replaces the free-text tag (#5, #16)
 **Decision:** Add a Notion **Project Overviews** database (Name · Status ·
-Repo · One-line purpose · Last externalized · Body) and give the Briefs DB a
-**Project relation** to it. Migrate off the free-text `--project` tag via a
-**dual-write** window: write both the relation and the legacy text property,
-backfill, then rename `Project Overview` → `Project` and drop the text field.
+Repo · One-line purpose · Last externalized · Body) and link each brief to it
+via a single **`Project Overview` relation**. The free-text `--project` tag was
+**removed entirely** (not renamed): all 73 existing briefs were backfilled onto
+the relation, the `local-ai-comparison`/`skills-manager` forks collapsed, then
+the legacy text property was dropped. `overview upsert` also gained
+`--icon`/`--cover`.
 **Why:** the free-text tag silently drifted (e.g. "Local AI Comparison" vs
 "local-ai-comparison") and split history; making projects first-class with a
-relation stops the fork, and dual-write makes the migration non-breaking for
-in-flight briefs.
+clickable relation stops the fork and lets every brief link into a real project
+page. (Superseded the original dual-write-then-rename plan — Ray chose to retire
+the tag outright once backfill was clean.)
 
 ### Minimal graveyard-ready repo contract
 **Decision:** A repo is graveyard-ready iff it carries **four** files:
