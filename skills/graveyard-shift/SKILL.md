@@ -72,7 +72,9 @@ Each subagent does the full loop — implement → tests/tsc clean → codex-rev
 
 **The orchestrator (main thread) does only four things:** plan the decomposition, spawn the agents, collect the PRs + reports, and synthesize (the final serial live-verification that genuinely can't parallelize — one app window, one set of credentials — plus the end-of-shift brief). It stays flat regardless of how many review rounds each item takes.
 
-**Durable handoff is what makes this lossless.** The handoff substrate is **durable state — GitHub issues + memory files — never the chat.** Before the run ends, every item's state lives in its issue + a memory file. That is what lets the session be cleared and resumed with nothing more than "get going on #N": the context that mattered is on disk, not in a transcript. Treat the transcript as disposable; treat the issue/memory as the system of record.
+**Durable handoff is what makes this lossless.** The handoff substrate is **durable state — GitHub issues + repo docs + Notion overview — never the chat.** Before the run ends, every item's state lives in its issue, and any durable project knowledge lives in the repo docs or the Notion overview. That is what lets the session be cleared and resumed with nothing more than "get going on #N": the context that mattered is on disk in the system of record, not in a transcript. Treat the transcript as disposable; treat the issue/docs/overview as the system of record.
+
+**Durable knowledge goes to git/Notion, NEVER local memory.** Local memory is a thin accelerant for the current task — ideally ~zero for a mature project — not a source of truth. Anything load-bearing belongs in a repo doc or the Notion overview, where it is versioned, visible, and cold-resumable. (Skills Manager learned this the hard way: ~16 local memory files had quietly become a parallel, invisible knowledge base shadowing GitHub + Notion — the exact anti-pattern to avoid.) For the full model — the four knowledge homes and the externalization lifecycle that puts a project on this footing — see [`docs/operating-model.md`](../../docs/operating-model.md).
 
 **Reserve the main thread for two things only:** (1) live, interactive work *with the user* (necessarily linear), and (2) serial live app/desktop driving that can't parallelize (one window; the OS targets the app by process name, so two binaries collide). Everything else belongs in an isolated agent.
 
@@ -186,7 +188,7 @@ Proposals are not the slow tail. They ship as eagerly as auto-ships — they're 
 4. Skip pass: note in the final summary, no action.
 5. **Loop.** When a wave returns, re-run `gh issue list` and fan out the next wave into the freed slots. The passes above describe routing, not a one-shot plan — repeat until the backlog is drained or the user is back (per "Scope" above).
 
-Before declaring the shift done, confirm the **durable handoff**: every item that landed or was queued has its state on its GitHub issue + a memory file, so the session could be cleared and resumed losslessly. The brief and terminal summary (below) are the human-facing layer on top of that durable state.
+Before declaring the shift done, confirm the **durable handoff**: every item that landed or was queued has its state on its GitHub issue + repo docs + Notion overview (never local memory), so the session could be cleared and resumed losslessly. The brief and terminal summary (below) are the human-facing layer on top of that durable state.
 
 Proposals are LOWER overhead than auto-ships (no PR, no codex loop, no merge) and HIGHER leverage on backlog clarity. Don't sandbag this pass.
 
