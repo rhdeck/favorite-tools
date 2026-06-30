@@ -44,7 +44,7 @@ These docs say *why*; the skills say *how*. The load-bearing procedures:
 
 - **`graveyard-shift`** ([skills/graveyard-shift](../skills/graveyard-shift)) — drain the backlog autonomously off durable state; the core working loop this model serves.
 - **`setup-graveyard-project`** — the ceremony that performs the externalization event (lifecycle step 2): backlog → issues, canon → repo docs, strategic state → Notion Overview.
-- **`observation-mode`** — ship into a watched observation phase instead of treating merge as the end; the eval substrate for judgment-shaped work.
+- **`observation-mode`** — ship into a watched observation phase instead of treating merge as the end; the eval substrate for judgment-shaped work. The signal that proves it's behaving must be **instrumented into the shipping PR and queryable** — the read/observability slice ships *with* the change, so a later sweep adjudicates by running a query, not by guessing.
 - **`shape-an-epic`** ([skills/shape-an-epic](../skills/shape-an-epic)) — turn an underspecified issue into a concrete proposal with recommendation, sketch, and trigger criteria.
 - **`pr-package`** ([skills/pr-package](../skills/pr-package)) — open a PR as a decision package with the load-bearing calls surfaced for review.
 - **`notion-briefs`** ([skills/notion-briefs](../skills/notion-briefs)) — set up and publish to the shared cross-project Notion Briefs DB.

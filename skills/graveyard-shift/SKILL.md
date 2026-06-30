@@ -23,6 +23,13 @@ The user reviews the queued material when they're back. The skill's job is to ma
 
 **Start of shift: sweep the stale-draft queue first.** Before triaging new work, inventory unmerged draft PRs and queued decisions from *prior* shifts (`gh pr list --draft` + the previous brief). Any draft that fixes a bug the user keeps hitting live goes at the TOP of the new brief ("you will keep hitting X until you review PR #N") — and if the user has since said anything that amounts to approval, land it. Fixes rotting in an unreviewed-drafts queue while the user re-experiences the bug is the single worst outcome a shift can hand back.
 
+**Then sweep the observation register.** Right after the stale-draft sweep, pull `gh issue list --label observing` (the `observation-mode` skill owns the full contract). For **each** observing issue, **run its Signal source query and record the dated reading as a note on the issue** — adjudication is mechanical ("ran `<query>`, got `<reading>`, vs threshold `<X>`"), not a vibe check:
+- reading at/under threshold and past the review-by → **graduate** (close, label `regression-candidate`);
+- reading over threshold → **regression** — route it into the wave as a fix, with the contract's "watch for" giving diagnosis a head start;
+- still inside the window → leave it, and carry its **age + last reading** into the brief ("#N observing 9d, watching X, last reading: 0 hits as of 6/30").
+
+For a non-instrumentable observation issue (the carve-out — planning/eval/doc/copy work) the "query" is checking the named non-code channel (e.g. `gh issue list` for a follow-up, the user-report inbox) against its threshold; record that reading the same way.
+
 **Also at start of shift: sweep the running register (`gh issue list --label running`).** These are live cross-shift jobs a prior shift (or a live session) launched that may still be executing — a long eval, a training run, a remote agent, a background build. They are the held resources and live actors you must not collide with. For each `running` issue, read its body (entry shape in [`docs/knowledge-homes.md`](../../docs/knowledge-homes.md) → "The running register"):
 - **Treat its `Holds:` line as occupied.** Don't launch work that contends for that resource (the GPU it's holding, the model it has resident) and don't re-run a cell already in flight. A still-running job is the trigger for this whole register — rhdeck/local-ai-comparison#37 was a real eval holding the GPU with no GitHub record, so a shift could blindly collide with it.
 - **Check the heartbeat for staleness.** A fresh heartbeat → leave it running and note it (in the brief, and to `shift-change`) as an **in-flight actor with age — NOT a decision awaiting the user** (a still-running eval is not a fork). A heartbeat gone stale past the threshold → flip the read to "investigate — possibly dead": follow its `Reap:` line to check real status, and **reap it** (close the issue, noting the freed resource) only once you've confirmed it's actually done or dead. Reaping is a confirmed decision, never an automatic kill.
@@ -129,6 +136,8 @@ For each:
 4. Open PR, run the `codex-pr` review loop (budget-aware engine, judgment gate, stopping rules)
 5. Merge when clean (or stopping window hit with only manageable P2s — apply silently per skill exception and ship)
 
+**Ship-into-observation is part of the diff, not a follow-up.** When an auto-ship lands judgment-shaped work that wants watching, the worker reopens with the `observing` label and the observation contract (see the `observation-mode` skill) — and the **Signal source must be instrumented in the same PR**: if "watch for X" needs a log line/counter/metric production doesn't emit, the worker *adds it in this diff* and fills the Signal source field (artifact + query + threshold). A contract the worker cannot make queryable is the signal to route the item back to **prep** instead, exactly as a failed eligibility gate does. (Non-instrumentable work — copy/doc/eval — uses a concrete non-code signal source per the carve-out in `observation-mode`; don't manufacture a metric for a trivial change whose revert is free.)
+
 ### 2. Prep — concrete code, but wants the user's eye
 
 Build the prototype, push as a **draft PR**, leave open for review. Do NOT merge.
@@ -176,8 +185,8 @@ The skip bucket is the smallest one. Be aggressive about ruling things INTO anot
 
 Everything else routes to one of the action buckets:
 - Parent meta-issues / umbrella threads → `shape-an-epic` with the "audit + replan" flavor (annotate what's shipped under it, scope what's left)
-- Observation tasks (user has to look at logs) → still useful to file a proposal naming WHAT the operator should look for and WHEN; that's not skip, it's a sharpened observation issue
-- Speculative bug fixes for unobserved shapes → `shape-an-epic` with explicit "When to pick up" naming the observable signal
+- Observation tasks (user has to look at logs) → still useful to file a proposal naming the **signal source** (the production artifact, the query that reads it, and the threshold) and WHEN to read it; that's not skip, it's a sharpened observation issue
+- Speculative bug fixes for unobserved shapes → `shape-an-epic` with explicit "When to pick up" naming the observable signal and where it'd be queried
 - Issues blocked on a parent that requires user approval → check if you can land the parent's *unblocked* child first; if not, `shape-an-epic` the parent so the approval gate is concrete
 
 Skip should fit in a short list at the end of the summary. If skip is more than ~25% of the backlog, you're skipping things that wanted shaping.

@@ -39,6 +39,29 @@ shift, so the read costs nothing new. It's a discipline (register at launch),
 not a process monitor or an enforced lock; auto-detection of orphans and
 real resource leases are explicitly out of scope.
 
+### Instrumented-signal gate: observation eligibility raised from *nameable* → *instrumented* (#15)
+**Decision:** Vendor the `observation-mode` skill into this repo (`skills/observation-mode/`)
+and raise its observation eligibility gate #2 from **nameable** to **instrumented**.
+The observation contract's "Where it'd show" beat becomes a required **Signal source**
+field with three parts — the production **artifact** that records the signal, the
+literal **query** that reads it, and the **threshold** that separates healthy from
+regressed. The shipping PR must *build* that signal source (a log line/counter that
+doesn't exist yet is added in the same diff); a signal the PR can't make queryable is
+**not** observation-eligible and falls back to prep/proposal. The graveyard sweep now
+**runs the query and records the dated reading** on the issue, so graduate-vs-regress
+is evidence-backed, not a vibe check. **Carve-out:** non-instrumentable work
+(planning/eval/doc/copy issues with no production signal) keeps a concrete **non-code**
+signal source (a user-report channel, a "no follow-up issue filed in 14d" check) — the
+gate forces *concreteness of where-to-look*, not a code metric in every case, and does
+not manufacture metrics for trivial changes whose revert is free.
+**Why:** *nameable ≠ queryable.* A prose "watch for X" passes the old gate but leaves
+no artifact a later shift can actually read, so the sweep degrades to re-deriving the
+concern and guessing — the contract *looks* filled in but can't be evaluated, which makes
+the observation window decorative. Making the read/observability slice a build-time
+deliverable of the shipping PR keeps the loosened ship-bar honest: shipping-into-observation
+costs a small instrumentation slice up front and buys a real eval in return. (Cost is a
+`grep`-able log line, not a metrics framework.)
+
 ### This repo IS the operating model; the work is improving it (docs + skills)
 **Decision:** Drop the "favorite-tools split" framing (closed #8). This
 repository is *the operating model* — its purpose is to hold and improve the
