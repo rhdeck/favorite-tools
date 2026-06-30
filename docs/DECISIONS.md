@@ -11,6 +11,18 @@ way it is*.
 
 ## 2026-06-30
 
+### This repo IS the operating model; the work is improving it (docs + skills)
+**Decision:** Drop the "favorite-tools split" framing (closed #8). This
+repository is *the operating model* — its purpose is to hold and improve the
+model, expressed as documents, skills, and harness files. The work here is
+**model alteration, not feature code**: issues and conversation evolve the
+model; shifts express those changes as edits to `docs/` and `skills/`. Whether
+to share the model more broadly (a separate *public* tools repo, later) is a
+downstream concern that does not shape this repo now (parked as #19).
+**Why:** focusing on "what to share" diluted the actual job. Naming this *the
+operating model* and keeping attention on making it good is what creates the
+value; packaging for others is only worth doing once the model is strong.
+
 ### operating-model is the model; skills-manager is the interface
 **Decision:** Keep two repos with distinct jobs and never conflate them.
 `operating-model` is *what the model is* — the canon/principles, where decisions
