@@ -1,9 +1,9 @@
 ---
-name: externalize-project
-description: Perform the externalization ceremony that declares a project graveyard-managed — sweep everything in heads and chat into durable substrate (GitHub issues, repo docs, Notion Project Overview) so any cold agent can resume from git + Notion alone. Use when the user says "externalize this project", "make this graveyard-ready", "declare this graveyard-managed", "set up the graveyard contract", or when a project is about to flip from live/inception work into the autonomous graveyard phase.
+name: setup-graveyard-project
+description: Set up a project for graveyard-managed work — perform the externalization event that declares it graveyard-ready by sweeping everything in heads and chat into durable substrate (GitHub issues, repo docs, Notion Project Overview) so any cold agent can resume from git + Notion alone. Use when the user says "set up the graveyard project", "make this graveyard-ready", "externalize this project", "declare this graveyard-managed", "set up the graveyard contract", or when a project is about to flip from live/inception work into the autonomous graveyard phase.
 ---
 
-# Externalize a Project
+# Set Up a Graveyard Project
 
 This is the **externalization event** — the deliberate ceremony that flips a project into the graveyard phase. Its single job: get every piece of load-bearing knowledge **out of heads and transcripts and into durable substrate**, so a cold agent who has never seen the conversation can pick the project up tomorrow with nothing but `git clone` + the Notion Project Overview.
 

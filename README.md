@@ -17,6 +17,7 @@ This is not a tool bag — it is the operating model for building big things wit
 | Skill | Description |
 | --- | --- |
 | [`graveyard-shift`](skills/graveyard-shift) | Work through the open issue backlog autonomously. Auto-ship the small clean fixes, prep draft PRs for review on bigger ones, and file refined proposals when design choices need user input — for unattended sessions. |
+| [`setup-graveyard-project`](skills/setup-graveyard-project) | Make a project graveyard-ready: perform the externalization event — backlog → issues, technical canon → repo docs + CLAUDE.md, strategic state → a Notion Project Overview — so any cold agent can resume from git + Notion alone. |
 | [`codex-pr`](skills/codex-pr) | Create a PR, review with `codex review`, fix issues in a loop until clean, then auto-merge. |
 | [`pr-package`](skills/pr-package) | Open a pull request as a decision package — summary, inline content to review, explicit "things to push back on," a checkbox test plan, and `Closes #N` — so the user reviews once with every load-bearing call surfaced. |
 | [`shape-an-epic`](skills/shape-an-epic) | Turn an underspecified "epic" issue into a concrete proposal comment — recommendation, sketch, phase plan, and trigger criteria — using a Shape Up pitch adapted for GitHub issues. |

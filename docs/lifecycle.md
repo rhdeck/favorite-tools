@@ -19,7 +19,7 @@ This is the **deliberate act of declaring a project graveyard-managed**. Everyth
 - conventions / agent operating instructions → **`CLAUDE.md`**
 - strategic state → a **Notion Project Overview** page
 
-This is a ceremony, not a vibe. The skill **`externalize-project`** performs it — it walks the dump and lands each kind of knowledge in its home per [knowledge-homes.md](knowledge-homes.md).
+This is a ceremony, not a vibe. The skill **`setup-graveyard-project`** performs it — it walks the dump and lands each kind of knowledge in its home per [knowledge-homes.md](knowledge-homes.md).
 
 **Step 2 happening *honestly* is the whole game.** "Honestly" means: no load-bearing knowledge left behind in a transcript or a memory file. If a fact the next agent needs still lives only in chat after externalization, the event didn't happen — it was theater. The test is brutal and simple: *could a cold agent, given only git + Notion, resume this project?* If the answer depends on something in your head or your transcript, you are not done.
 

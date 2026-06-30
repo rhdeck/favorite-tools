@@ -43,7 +43,7 @@ A project is not born externalized. It moves through three phases — inception 
 These docs say *why*; the skills say *how*. The load-bearing procedures:
 
 - **`graveyard-shift`** ([skills/graveyard-shift](../skills/graveyard-shift)) — drain the backlog autonomously off durable state; the core working loop this model serves.
-- **`externalize-project`** — the ceremony that performs the externalization event (lifecycle step 2): backlog → issues, canon → repo docs, strategic state → Notion Overview.
+- **`setup-graveyard-project`** — the ceremony that performs the externalization event (lifecycle step 2): backlog → issues, canon → repo docs, strategic state → Notion Overview.
 - **`observation-mode`** — ship into a watched observation phase instead of treating merge as the end; the eval substrate for judgment-shaped work.
 - **`shape-an-epic`** ([skills/shape-an-epic](../skills/shape-an-epic)) — turn an underspecified issue into a concrete proposal with recommendation, sketch, and trigger criteria.
 - **`pr-package`** ([skills/pr-package](../skills/pr-package)) — open a PR as a decision package with the load-bearing calls surfaced for review.
