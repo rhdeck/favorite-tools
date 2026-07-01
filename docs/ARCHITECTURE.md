@@ -47,6 +47,10 @@ never restate them.
   flavors of project source-of-truth (repo docs for agents, Notion Overview for
   humans), the minimal graveyard-ready repo contract, and the local-memory
   anti-pattern.
+- [`coordination.md`](coordination.md) — inter-project coordination: each project
+  is an autonomous division; the only sanctioned way for one to affect another is
+  to inject a GitHub issue into its repo (issues are also the cross-project
+  message bus), and loops become async issue-injection, not synchronous triggers.
 - [`OVERVIEW.md`](OVERVIEW.md), [`DECISIONS.md`](DECISIONS.md), this file — the
   repo's own contract artifacts (it dogfoods the contract it defines).
 

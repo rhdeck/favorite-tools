@@ -26,6 +26,10 @@ issue backlog. It dogfoods the model it defines.
   is the whole game.
 - **`docs/knowledge-homes.md`** — the four homes in depth, the repo contract,
   the local-memory anti-pattern.
+- **`docs/coordination.md`** — inter-project coordination: each project is an
+  autonomous division; the only sanctioned way for one to affect another is to
+  inject a GitHub issue into its repo (issues are also the cross-project message
+  bus), and loops become async issue-injection, not synchronous triggers.
 - **`docs/DECISIONS.md`** — the decision log: *why* things are the way they are.
   Read it before re-opening a settled call.
 - **`docs/ARCHITECTURE.md`** — what the system is and how the pieces fit.

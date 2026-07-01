@@ -11,6 +11,7 @@ This is not a tool bag — it is the operating model for building big things wit
 - [`docs/operating-model.md`](docs/operating-model.md) — the constitution: thesis, the two-axis/four-homes grid, and the versioned-visible-cold-resumable rule.
 - [`docs/lifecycle.md`](docs/lifecycle.md) — the three-phase lifecycle and why the externalization event is the whole game.
 - [`docs/knowledge-homes.md`](docs/knowledge-homes.md) — the four homes in depth, the repo contract, and the local-memory anti-pattern.
+- [`docs/coordination.md`](docs/coordination.md) — inter-project coordination: each project is an autonomous division, and the only sanctioned way for one to affect another is to inject a GitHub issue into its repo (issues are also the cross-project message bus); loops become async issue-injection.
 
 ## Skills
 
