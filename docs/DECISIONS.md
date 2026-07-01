@@ -11,6 +11,26 @@ way it is*.
 
 ## 2026-07-01
 
+### Seeding a Project Overview page and injecting its fill-issue must be atomic
+**Decision:** Creating a Notion **Project Overview** page for a project and
+injecting that project's canonical fill-issue into its repo are **one
+indivisible step** — never one without the other. The invariant: *an overview
+in an unfilled state with no open fill-issue in its repo is an orphan bug; so is
+an open fill-issue with no page.* The `setup-graveyard-project` skill now carries
+the atomicity rule, the canonical fill-issue template (title + verbatim body), a
+standardized **`graveyard-infra`** label on the fill-issue so cross-repo audits
+query by label instead of grepping titles, and a documented orphan-audit
+procedure (reconcile `overview list` unfilled pages against open fill-issues per
+repo). `notion-briefs` and `graveyard-shift` cross-link to the procedure; a
+follow-up issue proposes an `overview audit` CLI command to automate it.
+**Why:** a bulk seed created overview pages for projects that never got a driving
+fill-issue — producing **orphan pages that can never self-fill** (sc-auth,
+sc-kg-analysis/"State Change Mentor", and thedebate/"Councilors" each had a page
+with zero fill-issue; all three were repaired by hand). Page-creation and
+issue-injection were not atomic, so the setup flow could silently manufacture
+orphans. Making the two a single step — and giving the audit a label to query —
+closes the gap durably. Shipped into observation as reversible doc/skill canon.
+
 ### The operating model covers CONTENT, not just code — `essay-workshop` + `avoid-ai-voice` are canon
 **Decision:** The operating model is not code-only. Managing the **content
 pipeline** is part of how the business works, and its skills live here as
