@@ -9,6 +9,25 @@ way it is*.
 
 ---
 
+## 2026-07-01
+
+### The operating model covers CONTENT, not just code — `essay-workshop` + `avoid-ai-voice` are canon
+**Decision:** The operating model is not code-only. Managing the **content
+pipeline** is part of how the business works, and its skills live here as
+first-class canon: **`essay-workshop`** (capture → workshop → publish essays and
+mental models through the State Change Notion pipeline) is the content
+counterpart to `notion-briefs` — same "how we manage a pipeline in Notion" shape,
+pointed at content instead of code/briefs. **`avoid-ai-voice`** is the voice
+guardrail on that pipeline. Both are committed to `skills/`.
+**Why:** Ray placed both skills in this repo deliberately. Everything the model
+had covered so far manages *code* (issues, PRs, shifts, reviews); content is an
+equally load-bearing axis of the business and belongs in the same operating
+model. **Corollary for agents:** when new files appear in this repo, treat them
+as intentional — Ray's placement *is* the intent. Do not "clean up," relocate, or
+second-guess additions as stray; that is overstepping (an agent moved these two
+out on a distribution-cleanliness guess — wrong). Read new material as canon to
+integrate, not drift to reconcile.
+
 ## 2026-06-30
 
 ### Vendor `credit-pacing` into the repo — complete the executable canon

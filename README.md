@@ -25,6 +25,8 @@ This is not a tool bag — it is the operating model for building big things wit
 | [`shape-an-epic`](skills/shape-an-epic) | Turn an underspecified "epic" issue into a concrete proposal comment — recommendation, sketch, phase plan, and trigger criteria — using a Shape Up pitch adapted for GitHub issues. |
 | [`research-brief`](skills/research-brief) | Produce a research, survey, or analysis document as a skimmable markdown brief with a generated infographic prepended at the top. |
 | [`notion-briefs`](skills/notion-briefs) | Set up (or repair) the cross-project Notion "Briefs" system in a new environment — install the publisher CLI, attach to a Notion page, and create one shared, newest-first database every project can publish briefs and shift reports to. |
+| [`essay-workshop`](skills/essay-workshop) | Capture, workshop, and publish essays and mental models through the State Change Notion pipeline. The content counterpart to `notion-briefs`: how the operating model manages the content pipeline the way the rest manages code. |
+| [`avoid-ai-voice`](skills/avoid-ai-voice) | Strip the tells of generic AI writing — slop cadence, hollow hedging, reflexive symmetry — so published prose doesn't read as machine-generated. The voice guardrail on the content pipeline. |
 
 ## Installing a skill
 
