@@ -58,6 +58,24 @@ issue-injection were not atomic, so the setup flow could silently manufacture
 orphans. Making the two a single step — and giving the audit a label to query —
 closes the gap durably. Shipped into observation as reversible doc/skill canon.
 
+### Capture the north-star vision in `docs/VISION.md`
+**Decision:** Add a vision document that states where the model is *heading*,
+sitting above the constitution (which states what it *is*). Core frame: the model
+is about **how to work — and run a business — in the age of AI**, where AI
+occupies the **liminal space between delegation (to humans) and automation (to
+tools)** and must be managed as neither. "Graveyard" names the biggest idea *so
+far*, not the ceiling (parallel: Skills Manager → OS Manager grew past its
+name). Trajectory: from tech work → to an **idea business** whose manifestations
+are **software, content, and services**, with AI at their intersection — which is
+why content is canon here, not just code. The doc is explicitly **emerging, not
+doctrine**; the constitution/skills still win on concrete rules.
+**Why:** Ray articulated a vision materially larger than the graveyard mechanism
+and asked to memorialize it here so the direction is durable and visible, not
+trapped in a transcript. Capturing it prevents future agents (and future Ray)
+from mistaking the current biggest idea for the whole model. Shipped into
+observation — a living document expected to be corrected as the model grows,
+not a finished spec.
+
 ### The operating model covers CONTENT, not just code — `essay-workshop` + `avoid-ai-voice` are canon
 **Decision:** The operating model is not code-only. Managing the **content
 pipeline** is part of how the business works, and its skills live here as

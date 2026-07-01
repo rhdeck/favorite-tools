@@ -2,6 +2,8 @@
 
 This is the constitution. It states *why* this repo exists and the one rule everything else follows from. The skills under [`skills/`](../skills) are the executable canon — the procedures an agent runs. These docs are the human-readable canon — the principles those procedures serve. They cross-link; they never duplicate.
 
+> For where the model is *heading* — the larger idea that the graveyard machinery is one manifestation of — see [VISION.md](VISION.md). This document is what the model **is today**; that one is what it is **becoming**.
+
 ## Thesis
 
 **Big things get built by autonomous graveyard shifts running off durable, visible state — not by knowledge trapped in a chat transcript or a private memory file.**
