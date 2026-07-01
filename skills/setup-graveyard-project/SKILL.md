@@ -136,10 +136,13 @@ Why this is load-bearing: the page starts unfilled *by design* — each repo fil
 So the seed step is two coupled writes, done together:
 
 ```bash
-# 0. ensure the label exists in the target repo (no-op if it already does) — do this BEFORE
-#    creating the page, so the labeled issue-create in step 2 can't fail after a page exists
-gh label create graveyard-infra --repo rhdeck/<repo> \
-  --description "Graveyard infra task (owns its Notion Project Overview)" --color FBCA04 2>/dev/null || true
+# 0. ensure the label exists in the target repo — do this BEFORE creating the page, so the
+#    labeled issue-create in step 2 can't fail after a page already exists. Idempotent
+#    existence check (create only if absent) so a real auth/network failure still surfaces
+#    rather than being masked — a masked failure here re-manufactures the orphan.
+gh label list --repo rhdeck/<repo> --search graveyard-infra | grep -q '^graveyard-infra' \
+  || gh label create graveyard-infra --repo rhdeck/<repo> \
+       --description "Graveyard infra task (owns its Notion Project Overview)" --color FBCA04
 # 1. create the (unfilled) overview page
 python3 ~/.config/ai-briefs/notion_briefs.py overview upsert \
   --name "<Exact Project Name>" --status <status> --repo https://github.com/rhdeck/<repo>
