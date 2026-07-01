@@ -11,6 +11,23 @@ way it is*.
 
 ## 2026-06-30
 
+### Vendor `credit-pacing` into the repo — complete the executable canon
+**Decision:** Copy the `credit-pacing` skill from the global `~/.claude/skills/`
+into `skills/credit-pacing/`, and list it (plus the already-vendored
+`observation-mode`) in the README skills table. The graveyard-shift and codex-pr
+canon reference `credit-pacing` as load-bearing (budget-gate every fan-out wave,
+turn "pause" into "gate one path, keep working"); it was the last such skill
+still living only as a global skill, not in-repo. Same move #15 made for
+`observation-mode`.
+**Why:** the model's executable canon must travel with the repo. A cold clone
+(including one handed to another machine or a partner) that references
+`credit-pacing` but doesn't contain it isn't a complete, resumable operating
+model. Vendoring closes the gap so `git clone` + the Notion Overview is the whole
+system. (Two non-model skills — `avoid-ai-voice`, `essay-workshop` — that had
+drifted into the working tree were relocated back to global skills, not
+committed: they're personal/generic, not the operating model, and must not ship
+in a partner-facing repo.)
+
 ### The running register — track cross-shift live jobs on a `running` label (#13)
 **Decision:** Add the **running register** as model doctrine: the *executing-now*
 sibling of the `observing` register. Substrate is a **GitHub `running` label,
