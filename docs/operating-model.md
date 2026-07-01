@@ -50,7 +50,8 @@ These docs say *why*; the skills say *how*. The load-bearing procedures:
 - **`notion-briefs`** ([skills/notion-briefs](../skills/notion-briefs)) — set up and publish to the shared cross-project Notion Briefs DB.
 - **`credit-pacing`** — check budget before spending it and pace work around overage instead of grinding into it.
 
-## The other two docs
+## The other docs
 
 - [lifecycle.md](lifecycle.md) — the three-phase lifecycle and why the externalization event is the whole game.
 - [knowledge-homes.md](knowledge-homes.md) — the four homes in depth, the two flavors of project source-of-truth, the minimal graveyard-ready repo contract, and the local-memory anti-pattern.
+- [coordination.md](coordination.md) — inter-project coordination: each project is an autonomous division, and the *only* sanctioned way for one to affect another is to inject a GitHub issue into its repo (issues are also the cross-project message bus). Loops become async issue-injection, not synchronous triggers.

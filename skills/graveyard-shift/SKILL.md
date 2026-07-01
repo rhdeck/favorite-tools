@@ -93,6 +93,8 @@ Each subagent does the full loop — implement → tests/tsc clean → codex-rev
 
 **Reserve the main thread for two things only:** (1) live, interactive work *with the user* (necessarily linear), and (2) serial live app/desktop driving that can't parallelize (one window; the OS targets the app by process name, so two binaries collide). Everything else belongs in an isolated agent.
 
+**To affect another project, inject an issue — never reach in and do its work.** This repo's shift owns *this* repo's tree. When a task needs another division to change something (a dependency it must update, a fix it must carry, a fill-issue it must action), the sanctioned move is to **open an issue in that project's repo** and let *its* orchestrator adjudicate on *its* next shift — do not clone the other repo and land the change yourself. Likewise, any **recurring/looped coordination** ("every shift, re-check Y across repos P, Q, R") is expressed as **issue-injection into each target for async pickup**, not a synchronous trigger that drives another project's agent now. The injected issue is durable, versioned, visible, and cold-resumable; a live trigger is none of those. Full protocol in [`docs/coordination.md`](../../docs/coordination.md).
+
 ## The contract: decisions, never confirmations
 
 This is the load-bearing principle. The user's morning attention is for **decisions** — judgment calls only they can make. It is NOT for confirmations — "is this fix right?", "should I merge?", "does this look ok?". Those are answerable by other AIs (codex review, type-checkers, the build) without spending the most expensive resource.
