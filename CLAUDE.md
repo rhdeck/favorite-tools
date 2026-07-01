@@ -20,6 +20,10 @@ issue backlog. It dogfoods the model it defines.
 
 ## Where knowledge lives (read these before acting)
 
+- **`docs/VISION.md`** — the north star: where the model is *heading* (a
+  management model for AI in the liminal space between delegation and
+  automation; an idea business whose manifestations are software, content, and
+  services). Read for direction; it's emerging, not doctrine.
 - **`docs/operating-model.md`** — the constitution: thesis, the two-axis /
   four-homes grid, the versioned-visible-cold-resumable rule.
 - **`docs/lifecycle.md`** — the three phases and why the externalization event
