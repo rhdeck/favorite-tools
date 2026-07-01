@@ -10,6 +10,8 @@ Knowledge sorts on two axes — **scope** (this project vs. how-we-operate) and 
 
 What to do and what's decided, scoped to one project. Issues are the backlog and the decision record; PRs are the change record. This is where a graveyard shift reads its marching orders and writes its results. Visible (you watch the repo), versioned (issue history, PR diffs), cold-resumable ("get going on #N" is a complete handoff).
 
+Issues carry a second job that falls out of the same substrate: they are also the **inter-project message bus.** Each project is an autonomous division whose orchestrator owns its own tree; the *only* sanctioned way for one project (or a coordination loop) to affect another is to **inject an issue into the target's repo**, which its orchestrator then adjudicates on its next shift — never to reach in and do the work directly. The same durable, versioned, visible artifact that is *your* backlog item is *another division's request to you*, handled the same way. Full protocol — the division boundary, loops-as-async-injection, and the worked example — in [coordination.md](coordination.md).
+
 Two transient board states live inside this quadrant as labels — they are project-scoped work, not durable knowledge, and they disappear when the work resolves. They are siblings that together cover everything "in flight":
 
 - **`observing` — landed-but-unproven.** A change that merged but isn't yet trusted: reopened with a named signal to watch and graduated after a quiet window. See the `observation-mode` skill. This is the *eval* substrate (watched-after-shipping).

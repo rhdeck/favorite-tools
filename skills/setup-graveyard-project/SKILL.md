@@ -122,6 +122,90 @@ ls CLAUDE.md docs/OVERVIEW.md docs/DECISIONS.md docs/ARCHITECTURE.md
 
 Confirm the Notion Overview shows Status = Graveyard with today's last-externalized date. Only when both the repo contract and the Overview are satisfied is the project graveyard-ready. Report it as ready — and only then.
 
+## Seeding an overview for a project you are NOT externalizing (the bulk / remote-seed case)
+
+The ceremony above externalizes the project you are *in*. But overviews also get **seeded remotely** — you're setting up the Project Overviews DB and creating a page for a project whose repo you are not currently sitting in (a bulk seed across many repos, or standing up one project's page from another). That case has a hard atomicity rule.
+
+**The atomicity rule.** Creating an overview page for another project MUST, **in the same step**, inject the canonical fill-issue (below) into that project's repo — and vice versa: injecting a fill-issue MUST be paired with a page (created unfilled, ready for that project to fill). Never create one without the other.
+
+**The invariant, stated plainly:**
+> An overview in an **unfilled** state with **no open fill-issue** in its repo is an **orphan bug**. So is an **open fill-issue with no page**. Neither may exist alone.
+
+Why this is load-bearing: the page starts unfilled *by design* — each repo fills its own on its next graveyard shift, and the fill closes the driving issue. The fill-issue **is** the mechanism that makes an unfilled page self-fill. A page with no issue can never self-fill; it just sits orphaned forever. (This is not hypothetical: a bulk seed once created pages for `sc-auth`, `sc-kg-analysis` / "State Change Mentor", and `thedebate` / "Councilors" with zero fill-issues — three orphans repaired by hand. This rule is the durable fix.)
+
+So the seed step is two coupled writes, done together:
+
+```bash
+# 0. ensure the label exists in the target repo — do this BEFORE creating the page, so the
+#    labeled issue-create in step 2 can't fail after a page already exists. Idempotent
+#    existence check (create only if absent) so a real auth/network failure still surfaces
+#    rather than being masked — a masked failure here re-manufactures the orphan.
+gh label list --repo rhdeck/<repo> --search graveyard-infra | grep -q '^graveyard-infra' \
+  || gh label create graveyard-infra --repo rhdeck/<repo> \
+       --description "Graveyard infra task (owns its Notion Project Overview)" --color FBCA04
+# 1. create the (unfilled) overview page
+python3 ~/.config/ai-briefs/notion_briefs.py overview upsert \
+  --name "<Exact Project Name>" --status <status> --repo https://github.com/rhdeck/<repo>
+# 2. inject the driving fill-issue INTO THAT PROJECT'S REPO, in the same step — with the discoverable label
+gh issue create --repo rhdeck/<repo> \
+  --title "Fill out this project's Notion Project Overview (graveyard infra)" \
+  --label graveyard-infra \
+  --body-file <fill-issue-body.md>
+```
+
+If either write fails, back the other out (or fix it immediately) — a half-done seed is exactly the orphan the invariant forbids.
+
+### The canonical fill-issue template
+
+Reproduce this **verbatim**. Substitute `{name}` = the exact Notion project name used verbatim as `--name`, and `{repo}` = the repo slug.
+
+**TITLE:** `Fill out this project's Notion Project Overview (graveyard infra)`
+
+**LABEL:** `graveyard-infra` (see below).
+
+**BODY:**
+
+```markdown
+**Graveyard infra task — own your Notion Project Overview.**
+
+State Change now keeps a Notion **Project Overviews** database — one page per project — as the strategic spine. Every brief/shift report links to it (via the `Project Overview` relation, replacing the old free-text project tag), so we can click straight from a brief into the project's page. **Each repo is responsible for filling out its own overview** — pick this up during your next graveyard shift (or now).
+
+### Your project
+- **Exact project name (use verbatim as `--name`):** `{name}`
+- **Repo:** https://github.com/rhdeck/{repo}
+
+⚠️ The `--name` must match `{name}` **exactly** — a mismatch forks the project into two pages.
+
+### What to do — fill profile + data + icon/cover
+(publisher CLI at `~/.config/ai-briefs/notion_briefs.py`, `overview upsert` with --name/--status/--repo/--purpose/--icon/--cover/--file; Profile = Status+Repo+Purpose; Data = short human-facing strategic writeup that POINTS to repo docs, not architecture; plus icon+cover)
+
+### Done when
+`overview list` shows `{name}` with Status, purpose, an icon, and a populated body.
+```
+
+### The `graveyard-infra` label — make the fill-issue discoverable
+
+Apply the label **`graveyard-infra`** to every injected fill-issue. This is what lets the orphan-audit (and any cross-repo reconcile) query fill-issues **by label** rather than grepping issue titles for a substring — a stable, queryable handle instead of a fragile string match. Apply it at injection time (`gh issue create --label graveyard-infra`, creating the label in the target repo first if it doesn't exist). **Light follow-up:** back-apply `graveyard-infra` to the existing open fill-issues that predate this rule, so the whole population is label-discoverable.
+
+## Maintenance: the orphan audit
+
+A documented procedure — **not a tool** — to catch any orphan the seed flow may have produced (or any pre-rule orphan). Reconcile unfilled overview pages against open fill-issues, per repo:
+
+```bash
+# 1. list overview pages still in an unfilled state (no populated body / seeded-not-filled)
+python3 ~/.config/ai-briefs/notion_briefs.py overview list
+
+# 2. for each such page's repo, check for an OPEN fill-issue by label
+gh issue list --repo rhdeck/<repo> --label graveyard-infra --state open
+```
+
+Reconcile the two lists:
+- **Unfilled page with NO open fill-issue in its repo → orphan.** Repair by injecting the canonical fill-issue (above) into that repo, with the `graveyard-infra` label. This restores the atomicity invariant.
+- **Open fill-issue with NO overview page → the inverse orphan.** Repair by seeding the page (`overview upsert`) for that project.
+- **Filled page with a still-open fill-issue → stale issue.** The fill should have closed it; close it now.
+
+Run this whenever a bulk seed happens, and as a periodic sweep. A clean audit = every unfilled page has exactly one open `graveyard-infra` issue in its repo, and vice versa. (A CLI affordance to automate this reconcile — `overview audit` — is a proposed follow-up; until it exists, this is the procedure.)
+
 ## Anti-patterns
 
 - **Duplicating the canon into the Overview.** The Overview points to git; it never copies architecture or decisions. Strategic state for humans, not technical canon for agents.
@@ -130,6 +214,7 @@ Confirm the Notion Overview shows Status = Graveyard with today's last-externali
 - **Keeping local memory as a source of truth.** Local agent memory is a thin accelerant at most. If clearing it would lose something, it wasn't externalized.
 - **Aspirations in the canon.** `docs/ARCHITECTURE.md` describes what *is*; future plans are issues. Don't write the canon as a wish list.
 - **Declaring graveyard-ready with the contract incomplete.** All four files plus the Overview, or it's not ready. No partial credit.
+- **Seeding an overview page without injecting its fill-issue (or vice versa).** The two are one atomic step. A page with no driving `graveyard-infra` issue is an orphan that can never self-fill; an issue with no page is the inverse orphan. Never create one without the other.
 
 ## When NOT to use this skill
 

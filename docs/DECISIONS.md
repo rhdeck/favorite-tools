@@ -11,6 +11,53 @@ way it is*.
 
 ## 2026-07-01
 
+### Inter-project coordination protocol: GitHub issues are the cross-project message bus
+**Decision:** Adopt as canon that **each project/repo is an autonomous division
+with its own orchestrator**, and the **only** sanctioned way for one project (or a
+coordination loop) to affect another is to **inject a GitHub issue into the
+target's repo** — the target's orchestrator then considers it and decides how (or
+whether) to bring it to bear on its next shift. Outsiders never reach into a
+division's repo and do the work themselves. This **extends the four-homes rule**
+("GitHub issues = project work") into "issues are also the inter-project message
+bus / async RPC between autonomous agents." **Corollary on loops:** recurring
+coordination is expressed as loops that **inject durable issues** into target repos
+for async pickup by each target's shift — *not* as synchronous triggers that drive
+another project's agent to do X now. Captured as new prose canon in
+[`coordination.md`](coordination.md), pointed to from [`operating-model.md`](operating-model.md)
+and [`knowledge-homes.md`](knowledge-homes.md) (§1), with the operational half folded
+into the `graveyard-shift` skill.
+**Why:** the model is proving out across ~10 projects and needs a scaling story for
+coordination that doesn't collapse the division boundary or trap coordination in a
+live, in-memory trigger. An injected issue is versioned + visible + cold-resumable
+(the decisive rule); a synchronous trigger is none of those and bypasses the one
+actor — the target's orchestrator — that holds the division's full context. Making
+the issue the async message decouples requester from executor and is what lets the
+whole system run asynchronously at each division's own cadence. The Project
+Overviews rollout is the first worked instance: ~10 projects filled their **own**
+overviews via an injected `graveyard-infra` fill-issue per repo, not centrally —
+this protocol already in action (see the atomicity entry below). Shipped into
+observation as reversible doc/skill canon.
+
+### Seeding a Project Overview page and injecting its fill-issue must be atomic
+**Decision:** Creating a Notion **Project Overview** page for a project and
+injecting that project's canonical fill-issue into its repo are **one
+indivisible step** — never one without the other. The invariant: *an overview
+in an unfilled state with no open fill-issue in its repo is an orphan bug; so is
+an open fill-issue with no page.* The `setup-graveyard-project` skill now carries
+the atomicity rule, the canonical fill-issue template (title + verbatim body), a
+standardized **`graveyard-infra`** label on the fill-issue so cross-repo audits
+query by label instead of grepping titles, and a documented orphan-audit
+procedure (reconcile `overview list` unfilled pages against open fill-issues per
+repo). `notion-briefs` and `graveyard-shift` cross-link to the procedure; a
+follow-up issue proposes an `overview audit` CLI command to automate it.
+**Why:** a bulk seed created overview pages for projects that never got a driving
+fill-issue — producing **orphan pages that can never self-fill** (sc-auth,
+sc-kg-analysis/"State Change Mentor", and thedebate/"Councilors" each had a page
+with zero fill-issue; all three were repaired by hand). Page-creation and
+issue-injection were not atomic, so the setup flow could silently manufacture
+orphans. Making the two a single step — and giving the audit a label to query —
+closes the gap durably. Shipped into observation as reversible doc/skill canon.
+
 ### Capture the north-star vision in `docs/VISION.md`
 **Decision:** Add a vision document that states where the model is *heading*,
 sitting above the constitution (which states what it *is*). Core frame: the model

@@ -14,4 +14,4 @@ For the technical canon, read it in the repo:
 - [`DECISIONS.md`](DECISIONS.md) — why things are the way they are.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — what the system is and how it fits.
 - [`operating-model.md`](operating-model.md) · [`lifecycle.md`](lifecycle.md) ·
-  [`knowledge-homes.md`](knowledge-homes.md) — the constitution.
+  [`knowledge-homes.md`](knowledge-homes.md) · [`coordination.md`](coordination.md) — the constitution.
