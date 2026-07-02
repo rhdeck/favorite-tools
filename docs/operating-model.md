@@ -50,6 +50,7 @@ These docs say *why*; the skills say *how*. The load-bearing procedures:
 - **`shape-an-epic`** ([skills/shape-an-epic](../skills/shape-an-epic)) — turn an underspecified issue into a concrete proposal with recommendation, sketch, and trigger criteria.
 - **`pr-package`** ([skills/pr-package](../skills/pr-package)) — open a PR as a decision package with the load-bearing calls surfaced for review.
 - **`notion-briefs`** ([skills/notion-briefs](../skills/notion-briefs)) — set up and publish to the shared cross-project Notion Briefs DB.
+- **`interoffice-memo`** ([skills/interoffice-memo](../skills/interoffice-memo)) — send or adjudicate a cross-division request on the GitHub-issues message bus; the executable half of [coordination.md](coordination.md).
 - **`credit-pacing`** — check budget before spending it and pace work around overage instead of grinding into it.
 
 ## The other docs

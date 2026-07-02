@@ -37,6 +37,16 @@ This is why the message bus is an issue and not a call:
 
 This *extends* the four-homes rule. "GitHub issues = project work" already made issues the backlog and decision record for a single project ([knowledge-homes.md](knowledge-homes.md), "Project work → GitHub issues + PRs"). The same substrate, read across repos, is the **inter-project message bus**: an issue in your repo may be *your* backlog item or *another division's request to you*, and both are handled the same way — the orchestrator triages and adjudicates on its next shift.
 
+## The memo has a name and a label: `interoffice-memo`
+
+A cross-division request carried on this bus is an **interoffice memo** — the mental model is exactly an inter-office memo between lines of business: one division sends another a written request, the recipient reads it on their own time and decides what to do with it. Every such issue carries the **`interoffice-memo`** label on the target repo, and that label means one precise thing:
+
+> **This issue is a request from another division — not a backlog item this repo authored for itself.**
+
+The label is what lets any shift distinguish *its own work* from *another division's ask*, and what makes memos queryable across every repo (`gh issue list --label interoffice-memo`). A well-formed memo states its sending division, the **want** (an outcome, not a dictated design — the recipient owns the *how*), the constraints the recipient should weigh, the ask, and a **return path** (if it raises questions, the recipient injects a reverse memo back into the sender's repo — coordination is bidirectional).
+
+Receiving a memo is an act of adjudication, not obedience: the recipient's orchestrator considers it, decides **how or whether** to act, sequences it against its own backlog, and **records the outcome in a comment** — accepted-and-scheduled, addressed-another-way, or declined-with-reason. Silently dropping a memo (or closing it unresolved) breaks the bus. The operational how-to for both ends lives in the [`interoffice-memo`](../skills/interoffice-memo/SKILL.md) skill.
+
 ## Loops become async issue-injection, not synchronous triggers
 
 This is also the model's stance on the "agent loops" others reach for — a loop that immediately triggers an agent to *do X now*.

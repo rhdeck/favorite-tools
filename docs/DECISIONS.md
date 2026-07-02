@@ -11,6 +11,29 @@ way it is*.
 
 ## 2026-07-01
 
+### Cross-division requests are "interoffice memos" carried by the `interoffice-memo` label
+**Decision:** Name and standardize the cross-project message from the coordination
+protocol as an **interoffice memo**, marked by a required **`interoffice-memo`** label
+(green, `0e8a16`) on the target repo. The label carries a precise meaning: *this issue is
+a request from another division, not a backlog item this repo authored for itself* — which
+is what lets any shift tell its own work from another division's ask, and makes memos
+queryable everywhere (`gh issue list --label interoffice-memo`). A memo states its sending
+division, the **want** (outcome, not dictated design), constraints to weigh, the ask, and a
+**return path** (reverse memo back into the sender's repo). Receiving one is adjudication,
+not obedience: consider it, decide how/whether, sequence it, and **record the outcome in a
+comment**; never silently drop or orphan-close it. Memorialized in
+[`coordination.md`](coordination.md) and enacted by a new [`interoffice-memo`](../skills/interoffice-memo/SKILL.md)
+skill (both send and receive sides).
+**Why:** the coordination canon established issues-as-message-bus, but a nameless,
+label-less message is invisible — a receiving shift can't distinguish "another division
+needs something from me" from its own backlog, and there was no shared procedure for what to
+*do* on receipt. The first real memo (Graveyard Operating Model → OS Manager, on editable
+harness-level memory injection: `rhdeck/skills-manager#145`) is what surfaced the need. Ray
+liked the "interoffice memo" framing and asked to memorialize the term + label and give
+agents a skill so a recipient knows what a memo *means* and what to do with it. Giving the
+message a name, a queryable marker, and a two-sided procedure turns a convention into
+durable, dogfoodable infrastructure. Shipped into observation as reversible doc/skill canon.
+
 ### Project discovery is the read-side of coordination: the Overviews DB is the org chart, Briefs are the status wire
 **Decision:** Make explicit — in [`coordination.md`](coordination.md) and pointed to from
 [`CLAUDE.md`](../CLAUDE.md) — that reaching another division has a *read side* that
