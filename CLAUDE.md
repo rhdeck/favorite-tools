@@ -30,10 +30,12 @@ issue backlog. It dogfoods the model it defines.
   is the whole game.
 - **`docs/knowledge-homes.md`** — the four homes in depth, the repo contract,
   the local-memory anti-pattern.
-- **`docs/coordination.md`** — inter-project coordination: each project is an
-  autonomous division; the only sanctioned way for one to affect another is to
-  inject a GitHub issue into its repo (issues are also the cross-project message
-  bus), and loops become async issue-injection, not synchronous triggers.
+- **`docs/coordination.md`** — inter-project coordination: how you **discover**
+  sister divisions (read the Notion Project Overviews DB — the org chart, with
+  each project's repo as its address — and the Briefs DB — the status wire) and
+  how you **reach** them (the only sanctioned way for one project to affect
+  another is to inject a GitHub issue into its repo; issues are the cross-project
+  message bus, and loops become async issue-injection, not synchronous triggers).
 - **`docs/DECISIONS.md`** — the decision log: *why* things are the way they are.
   Read it before re-opening a settled call.
 - **`docs/ARCHITECTURE.md`** — what the system is and how the pieces fit.
@@ -79,6 +81,11 @@ the `notion-briefs` setup skill. Full flags: that directory's `README.md`.
 
 - The backlog is the GitHub issues on `rhdeck/operating-model`. A graveyard
   shift drains it directly; `gh issue list --state open` is the marching order.
+- **Need to coordinate with another project (line of business)?** Discover it via
+  the Notion Project Overviews (`notion_briefs.py overview list`) + its recent
+  Briefs, then affect it *only* by injecting a GitHub issue into the repo named
+  on its Overview — never by editing its tree yourself. Full protocol:
+  [`docs/coordination.md`](docs/coordination.md).
 - Edits are docs + skills, so review is human/judgment review, not tests. Open a
   real PR (the `codex-pr` or `pr-package` skills), surface load-bearing calls,
   merge into observation.

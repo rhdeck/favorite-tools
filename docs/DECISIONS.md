@@ -11,6 +11,23 @@ way it is*.
 
 ## 2026-07-01
 
+### Project discovery is the read-side of coordination: the Overviews DB is the org chart, Briefs are the status wire
+**Decision:** Make explicit — in [`coordination.md`](coordination.md) and pointed to from
+[`CLAUDE.md`](../CLAUDE.md) — that reaching another division has a *read side* that
+precedes the write side. There is **no hardcoded roster of projects**: you discover a
+sister division by reading the Notion **Project Overviews DB** (the org chart — one page
+per project, whose **Repo field is the division's address**) and its recent **Briefs**
+(the status wire — current state, is-it-active), then message it by injecting a GitHub
+issue into that repo. A **blank Repo field is a routing failure**, not a cosmetic gap — a
+division with no address cannot be reached. `overview list` enumerates the roster.
+**Why:** the coordination canon (the entry below) specified *how to affect* another
+project (inject an issue) but not *how to become aware of* one or *how to find its
+address*. Without the read side, the write side has nowhere to send to — and the sc-auth
+orphan (blank Repo) showed a real division that had literally become unaddressable. Naming
+the two Notion DBs as the live registry (rather than any static list) keeps discovery on
+substrates the model already maintains, and reframes the Overview Repo field as
+load-bearing routing infrastructure. Shipped into observation as reversible doc canon.
+
 ### Inter-project coordination protocol: GitHub issues are the cross-project message bus
 **Decision:** Adopt as canon that **each project/repo is an autonomous division
 with its own orchestrator**, and the **only** sanctioned way for one project (or a
